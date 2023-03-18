@@ -3,7 +3,7 @@
 #include <fmt/format.h>
 #include <fstream>
 #include <imgui.h>
-#include <imgui_impl_sdl.h>
+#include <imgui_impl_sdl2.h>
 #include <imgui_impl_sdlrenderer.h>
 #include <string_view>
 #include <vector>

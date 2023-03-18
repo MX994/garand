@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD 23)
 # - SDL2
 # - SDL2PP
 # - imgui
+# vcpkg install fmt sdl2 sdl2-image sdl2-mixer imgui[sdl2-binding,sdl2-renderer-binding]
 find_package(fmt REQUIRED)
 find_package(SDL2 CONFIG REQUIRED)
 find_package(SDL2_image CONFIG REQUIRED)
