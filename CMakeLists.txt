@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
-project(garand LANGUAGES CXX)
+project(garand
+    VERSION 0.0.1
+    LANGUAGES CXX
+)
 
 set(CMAKE_CXX_STANDARD 23)
 
@@ -8,14 +11,16 @@ set(CMAKE_CXX_STANDARD 23)
 # - SDL2
 # - SDL2PP
 # - imgui
-find_package(fmt CONFIG REQUIRED)
+
+# vcpkg install fmt sdl2 sdl2-image sdl2-mixer imgui[sdl2-binding,sdl2-renderer-binding]
+find_package(fmt REQUIRED)
 find_package(SDL2 CONFIG REQUIRED)
 find_package(SDL2_image CONFIG REQUIRED)
 find_package(SDL2_mixer CONFIG REQUIRED)
 find_package(SDL2_ttf CONFIG REQUIRED)
 find_package(SDL2PP REQUIRED)
 find_package(imgui CONFIG REQUIRED)
-file(GLOB sources src/*.cpp src/simulator/*.cpp)
+file(GLOB sources src/*.cpp)
 
 add_executable(garand ${sources})
 target_include_directories(garand PRIVATE ${SDL2PP_INCLUDE_DIRS})
