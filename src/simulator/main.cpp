@@ -1,13 +1,26 @@
-#include <fmt/format.h>
-#include <imgui.h>
-#include <imgui_impl_sdl.h>
-#include <imgui_impl_sdlrenderer.h>
-
+#include "Memory.hpp"
 #include <SDL2pp/SDL2pp.hh>
+#include <algorithm>
 #include <exception>
+#include <fmt/format.h>
 #include <fstream>
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_sdlrenderer.h>
+#include <numeric>
 #include <string_view>
+#include <variant>
 #include <vector>
+
+namespace ImGui {
+#include <imgui_memory_editor.h>
+
+template <typename T, typename... Args>
+IMGUI_API void TextFmt(T &&fmt, const Args &...args) {
+    std::string str = fmt::format(std::forward<T>(fmt), args...);
+    ImGui::TextUnformatted(&*str.begin(), &*str.end());
+}
+} // namespace ImGui
 
 using namespace SDL2pp;
 
@@ -15,22 +28,103 @@ static constexpr uint32_t SCREEN_WIDTH = 640;
 static constexpr uint32_t SCREEN_HEIGHT = 480;
 static constexpr uint32_t framerate = 60;
 
-char buf[4096];
-float f = 0;
-bool show_demo_window = false;
+class MemoryPerf {
+    size_t counter = 0;
+    size_t latency = 0;
+    std::vector<size_t> latency_history;
+
+  public:
+    MemoryPerf(Garand::Memory &init) { this->counter = init.get_counter(); }
+
+    void update(Garand::Memory &state) {
+        auto new_counter = state.get_counter();
+        auto latency = state.get_latency() * (new_counter - this->counter);
+        this->counter = new_counter;
+        this->latency = latency;
+        latency_history.push_back(latency);
+    }
+
+    size_t get_latency() { return this->latency; }
+    double get_latency_avg() {
+        if (latency_history.size() == 0) {
+            return 0.;
+        } else {
+            return std::accumulate(latency_history.begin(),
+                                   latency_history.end(), size_t{0}) *
+                   1. / latency_history.size();
+        }
+    }
+};
+
+void memoryDemoWindow() {
+    ImGui::Begin("Memory demo");
+
+    const char *items[] = {"No cache", "L1+L2+L3"};
+    static int item_current = 0;
+
+    using Garand::Memory;
+    using Garand::Cache;
+    static Memory memory;
+    static MemoryPerf perf{memory};
+    if (ImGui::Combo("Cache mode", &item_current, items, IM_ARRAYSIZE(items))) {
+        switch (item_current)
+        {
+        case 1:
+            memory = Memory(0x200000);
+            break;
+
+        case 0:
+        default:
+            memory = Memory();
+            break;
+        }
+        // Attach to perf counter
+        perf = MemoryPerf{memory};
+    }
+
+    ImGui::Text("Memory size: %llu", memory.get_size());
+
+    ImGui::Text("Latency: %llu", perf.get_latency());
+    ImGui::Text("Latency Avg.: %lf", perf.get_latency_avg());
+
+    static Memory::AddressSize address = 0;
+    constexpr Memory::AddressSize address_step = 1;
+    constexpr Memory::AddressSize address_step_fast = 16;
+    static Memory::LoadSize value = 0;
+    constexpr Memory::LoadSize value_step = 0;
+
+    ImGui::InputScalar("address", ImGuiDataType_U32, &address, &address_step,
+                       &address_step_fast, "%08lX");
+    ImGui::InputScalar("value", ImGuiDataType_U32, &value, &value_step,
+                       &value_step, "%lu");
+
+    if (ImGui::Button("Load")) {
+        value = *memory.load(address);
+        perf.update(memory);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Store")) {
+        memory.store(address, value);
+        perf.update(memory);
+    }
+    static ImGui::MemoryEditor mem_edit;
+    mem_edit.DrawContents(memory.get_raw(), memory.get_size());
+    ImGui::End();
+}
+
 void debuggui() {
+    static bool show_demo_window = false;
+    static bool show_memory_demo_window = false;
     if (show_demo_window) {
         ImGui::ShowDemoWindow(&show_demo_window);
     }
-    ImGui::Begin("Hello, world!");
-    ImGui::Text("Hello, world %d", 123);
-    if (ImGui::Button("Save")) {
-        fmt::print("Error: Save is not implemented\n");
+    if (show_memory_demo_window) {
+        memoryDemoWindow();
     }
     // Edit bools storing our window open/close state
+    ImGui::Begin("Control UI");
     ImGui::Checkbox("Demo Window", &show_demo_window);
-    ImGui::InputText("string", buf, IM_ARRAYSIZE(buf));
-    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+    ImGui::Checkbox("Memory Demo Window", &show_memory_demo_window);
     ImGui::End();
 }
 
@@ -40,8 +134,8 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
         // Initialize SDL library
         SDL sdl{SDL_INIT_VIDEO};
 
-        Window window("garand", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                      SCREEN_WIDTH, SCREEN_HEIGHT,
+        Window window("garand", SDL_WINDOWPOS_UNDEFINED,
+                      SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT,
                       SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 
         // Create accelerated video renderer with default driver
@@ -56,7 +150,6 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
         ImGui::StyleColorsDark();
         ImGui_ImplSDL2_InitForSDLRenderer(window.Get(), renderer.Get());
         ImGui_ImplSDLRenderer_Init(renderer.Get());
-
         // Main loop
         auto base_ticks = SDL_GetTicks();
         while (1) {
@@ -76,9 +169,8 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
                     return 0;
                 } else if (event.type == SDL_KEYDOWN) {
                     switch (event.key.keysym.sym) {
-                        case SDLK_ESCAPE:
-                        case SDLK_q:
-                            return 0;
+                    case SDLK_ESCAPE:
+                        return 0;
                     }
                 }
             }
@@ -100,7 +192,8 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
             SDL_Delay(1);
         }
 
-        // Here all resources are automatically released and library deinitialized
+        // Here all resources are automatically released and library
+        // deinitialized
         ImGui_ImplSDLRenderer_Shutdown();
         ImGui_ImplSDL2_Shutdown();
         ImGui::DestroyContext();

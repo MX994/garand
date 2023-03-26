@@ -20,10 +20,20 @@ find_package(SDL2_mixer CONFIG REQUIRED)
 find_package(SDL2_ttf CONFIG REQUIRED)
 find_package(SDL2PP REQUIRED)
 find_package(imgui CONFIG REQUIRED)
-file(GLOB sources src/*.cpp)
+include(FetchContent)
+FetchContent_Declare(
+  memoryview
+  GIT_REPOSITORY https://github.com/ocornut/imgui_club.git
+  GIT_TAG        ea49dd3c6803088d50b496e3fe981501543b7cbc
+)
+FetchContent_Populate(memoryview)
+file(GLOB sources src/simulator/*.cpp src/simulator/src/Memory.cpp)
 
 add_executable(garand ${sources})
-target_include_directories(garand PRIVATE ${SDL2PP_INCLUDE_DIRS})
+target_include_directories(garand
+    PRIVATE ${SDL2PP_INCLUDE_DIRS}
+    PRIVATE ${memoryview_SOURCE_DIR}/imgui_memory_editor
+    PRIVATE src/simulator/include)
 target_link_libraries(garand
     PRIVATE
     fmt::fmt
