@@ -87,11 +87,11 @@ void memoryDemoWindow() {
     ImGui::Text("Latency: %llu", perf.get_latency());
     ImGui::Text("Latency Avg.: %lf", perf.get_latency_avg());
 
-    static Memory::AddressSize address = 0;
-    constexpr Memory::AddressSize address_step = 1;
-    constexpr Memory::AddressSize address_step_fast = 16;
-    static Memory::LoadSize value = 0;
-    constexpr Memory::LoadSize value_step = 0;
+    static Garand::AddressSize address = 0;
+    constexpr Garand::AddressSize address_step = 1;
+    constexpr Garand::AddressSize address_step_fast = 16;
+    static Garand::LoadSize value = 0;
+    constexpr Garand::LoadSize value_step = 0;
 
     ImGui::InputScalar("address", ImGuiDataType_U32, &address, &address_step,
                        &address_step_fast, "%08lX");

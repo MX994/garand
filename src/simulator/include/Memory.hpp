@@ -5,25 +5,40 @@
 #define GARAND_MEMORY_HPP
 
 namespace Garand {
+using LoadSize = uint32_t;
+using AddressSize = uint32_t;
+constexpr uint16_t CACHE_BLOCK_COUNT = 0x100; // 2^8.
+constexpr uint32_t CACHE_BLOCK_SIZE = 0x10000; // 2 ^ 16.
+constexpr uint32_t CACHE_MISS_PENALTY = 0xDFA;
+constexpr uint32_t CACHE_HIT_PENALTY = 0x1FA;
+
+struct CacheAddress {
+  uint32_t IsDirty : 1; // Dirty bit.
+  uint32_t Tag : 8;     // :)
+  uint32_t Index : 8;  // We have 2^8 lines.
+  uint32_t Offset : 16; // Block size is 2^16.
+};
+
+struct CacheBlock {
+  // Each block is 64KB.
+  uint8_t Tag;
+  uint8_t Data[CACHE_BLOCK_SIZE];
+};
+
+CacheBlock Blocks[CACHE_BLOCK_COUNT];
+
 class Cache {
   private:
-    std::vector<std::pair<size_t, size_t>> cache_counter;
-    std::vector<size_t> cache_latency;
+    size_t counter;
+    size_t latency;
 
   public:
-  // Need to rework to support customizing size and cache count
-    Cache(std::initializer_list<size_t> latency) {
-        this->cache_latency = {latency};
-        this->cache_counter =
-            decltype(this->cache_counter)(latency.size(), {0, 0});
-    }
+    Cache(size_t latency) : latency(latency) {}
+    CacheBlock ReadCacheBlock(uint32_t Offset);
 };
 
 class Memory {
   public:
-    using LoadSize = uint32_t;
-    using AddressSize = uint32_t;
-
   private:
     // Placeholders for now
     size_t size = 0;
@@ -34,12 +49,12 @@ class Memory {
     Garand::Cache cache;
 
   public:
-    Memory(AddressSize sz = 0x100000, Garand::Cache cache = {})
-        : size(sz), cache(cache) {
-        this->memory_region = std::vector<uint8_t>(sz, 0);
+    Memory(AddressSize sz = CACHE_BLOCK_SIZE, Garand::Cache cache = {}): size(sz), cache(cache) {
+        this->memory_region = std::vector<uint8_t>(sz * CACHE_BLOCK_COUNT, 0);
     };
     // These two are placeholders for now
     LoadSize *load(AddressSize address);
+    CacheBlock *FindBlock(CacheAddress Addr);
     void store(AddressSize address, LoadSize value);
     size_t get_size();
     size_t get_counter();
