@@ -69,14 +69,8 @@ void cacheMemWindow() {
 
     static ImGui::MemoryEditor mem_edit;
     auto *block = &Garand::Blocks[block_id];
-    
-    // I believe the memory it read is correct
-    // The address is wrong tho
-    // Wait. I know.
-    // Probably because of the workaround in the first place
-    // Oh?
-    // Does the line below execute more than once?
-    fmt::print("Cache block {} read\n", block_id);
+
+    // fmt::print("Cache block {} read\n", block_id);
     ImGui::Text("Tag: %d", block->Tag);
     ImGui::Text("Valid: %d", block->Valid);
     mem_edit.DrawContents(block->Data, Garand::CACHE_BLOCK_SIZE); // This here
@@ -89,7 +83,6 @@ void memoryDemoWindow() {
     const char *items[] = {"No cache", "Cache"};
     static int item_current = 0;
 
-    using Garand::Cache;
     using Garand::Memory;
     static Memory memory;
     static MemoryPerf perf{memory};

@@ -26,17 +26,8 @@ struct CacheBlock {
   uint8_t Data[CACHE_BLOCK_SIZE];
 };
 
+// Todo: Move this into scope and clear cache
 inline CacheBlock Blocks[CACHE_BLOCK_COUNT];
-
-class Cache {
-  private:
-    size_t counter;
-    size_t latency;
-
-  public:
-    Cache(size_t latency = 0x10) : latency(latency) {}
-    CacheBlock ReadCacheBlock(uint32_t Offset);
-};
 
 class Memory {
   public:
@@ -47,10 +38,9 @@ class Memory {
     size_t counter = 0;
     // nanosecond
     size_t latency = 100;
-    Garand::Cache cache;
 
   public:
-    Memory(AddressSize sz = 0x100000, Garand::Cache cache = {}): size(sz), cache(cache) {
+    Memory(AddressSize sz = 0x100000): size(sz) {
         this->memory_region = std::vector<uint8_t>(sz, 0);
     };
     // These two are placeholders for now
