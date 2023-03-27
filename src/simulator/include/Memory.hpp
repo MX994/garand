@@ -14,7 +14,7 @@ constexpr uint32_t CACHE_HIT_PENALTY = 0x1FA;
 
 struct CacheAddress {
   uint32_t IsDirty : 1; // Dirty bit.
-  uint32_t Tag : 8;     // :)
+  uint8_t Tag : 8;     // :)
   uint32_t Index : 8;  // We have 2^8 lines.
   uint32_t Offset : 16; // Block size is 2^16.
 };
@@ -22,10 +22,11 @@ struct CacheAddress {
 struct CacheBlock {
   // Each block is 64KB.
   uint8_t Tag;
+  uint8_t Valid;
   uint8_t Data[CACHE_BLOCK_SIZE];
 };
 
-CacheBlock Blocks[CACHE_BLOCK_COUNT];
+inline CacheBlock Blocks[CACHE_BLOCK_COUNT];
 
 class Cache {
   private:
@@ -33,7 +34,7 @@ class Cache {
     size_t latency;
 
   public:
-    Cache(size_t latency) : latency(latency) {}
+    Cache(size_t latency = 0x10) : latency(latency) {}
     CacheBlock ReadCacheBlock(uint32_t Offset);
 };
 
@@ -49,8 +50,8 @@ class Memory {
     Garand::Cache cache;
 
   public:
-    Memory(AddressSize sz = CACHE_BLOCK_SIZE, Garand::Cache cache = {}): size(sz), cache(cache) {
-        this->memory_region = std::vector<uint8_t>(sz * CACHE_BLOCK_COUNT, 0);
+    Memory(AddressSize sz = 0x100000, Garand::Cache cache = {}): size(sz), cache(cache) {
+        this->memory_region = std::vector<uint8_t>(sz, 0);
     };
     // These two are placeholders for now
     LoadSize *load(AddressSize address);

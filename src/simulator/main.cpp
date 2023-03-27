@@ -38,7 +38,7 @@ class MemoryPerf {
 
     void update(Garand::Memory &state) {
         auto new_counter = state.get_counter();
-        auto latency = state.get_latency() * (new_counter - this->counter);
+        auto latency = (new_counter - this->counter);
         this->counter = new_counter;
         this->latency = latency;
         latency_history.push_back(latency);
@@ -54,21 +54,47 @@ class MemoryPerf {
                    1. / latency_history.size();
         }
     }
+    size_t *get_all() { return latency_history.data(); }
+    size_t length() { return latency_history.size(); }
 };
+
+void cacheMemWindow() {
+    ImGui::Begin("Cache view");
+    static int block_id = 0;
+    ImGui::InputInt("Block", &block_id);
+
+    // This is the cache view earlier
+    // For some reason, Garand::Blocks address here is different from
+    // Garand::Blocks used in Memory.cpp
+
+    static ImGui::MemoryEditor mem_edit;
+    auto *block = &Garand::Blocks[block_id];
+    
+    // I believe the memory it read is correct
+    // The address is wrong tho
+    // Wait. I know.
+    // Probably because of the workaround in the first place
+    // Oh?
+    // Does the line below execute more than once?
+    fmt::print("Cache block {} read\n", block_id);
+    ImGui::Text("Tag: %d", block->Tag);
+    ImGui::Text("Valid: %d", block->Valid);
+    mem_edit.DrawContents(block->Data, Garand::CACHE_BLOCK_SIZE); // This here
+    ImGui::End();
+}
 
 void memoryDemoWindow() {
     ImGui::Begin("Memory demo");
 
-    const char *items[] = {"No cache", "L1+L2+L3"};
+    const char *items[] = {"No cache", "Cache"};
     static int item_current = 0;
 
-    using Garand::Memory;
     using Garand::Cache;
+    using Garand::Memory;
     static Memory memory;
     static MemoryPerf perf{memory};
     if (ImGui::Combo("Cache mode", &item_current, items, IM_ARRAYSIZE(items))) {
-        switch (item_current)
-        {
+        switch (item_current) {
         case 1:
             memory = Memory(0x200000);
             break;
@@ -86,6 +112,13 @@ void memoryDemoWindow() {
 
     ImGui::Text("Latency: %llu", perf.get_latency());
     ImGui::Text("Latency Avg.: %lf", perf.get_latency_avg());
+    static bool cache_view = false;
+
+    ImGui::Checkbox("Cache Window", &cache_view);
+
+    if (cache_view) {
+        cacheMemWindow();
+    }
 
     static Garand::AddressSize address = 0;
     constexpr Garand::AddressSize address_step = 1;
