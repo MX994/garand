@@ -5,7 +5,7 @@ Garand::Instruction Garand::Instruction::Encode() {
     return Garand::Instruction();
 }
 
-Garand::DecodedInstruction Garand::Instruction::Decode(GarandInstruction instruction) {
+Garand::DecodedInstruction Garand::Instruction::Decode(Garand::GarandInstruction instruction) {
     using Garand::DecodedInstruction;
 
     switch (instruction.Operation)
@@ -327,4 +327,13 @@ Garand::DecodedInstruction Garand::Instruction::Decode(GarandInstruction instruc
         default:
             return UNKNOWN;
     }
+}
+
+Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruction instr) {
+    Garand::InstructionWriteBack wb;
+    switch (instr)
+    {
+
+    }
+    return wb;
 }
