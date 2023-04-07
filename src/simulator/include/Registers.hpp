@@ -1,7 +1,7 @@
 #ifndef GARAND_REGISTERS_H
 #define GARAND_REGISTERS_H
 
-#include <ctype.h>
+#include <cstdint>
 
 namespace Garand {
     /*

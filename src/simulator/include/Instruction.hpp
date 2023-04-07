@@ -12,11 +12,6 @@ namespace Garand {
         uint64_t InstructionSpecific: 60;
     };
 
-    struct InstructionWriteBack {
-        uint64_t value;
-        uint64_t location;
-    };
-
     class Instruction {
         public:
             static Instruction Encode();
