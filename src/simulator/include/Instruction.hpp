@@ -1,4 +1,6 @@
 #include "Registers.hpp"
+#include "Memory.hpp"
+#include "Instructions.hpp"
 
 #ifndef GARAND_INSTRUCTION_HPP
 #define GARAND_INSTRUCTION_HPP
@@ -13,7 +15,7 @@ namespace Garand {
     class Instruction {
         public:
             static Instruction Encode();
-            void Decode(GarandInstruction instr);
+            Garand::DecodedInstruction Decode(GarandInstruction instr);
     };
 } // namespace Garand
 
