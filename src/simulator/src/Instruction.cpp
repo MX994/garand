@@ -329,149 +329,149 @@ Garand::DecodedInstruction Garand::Instruction::Decode(Garand::GarandInstruction
     }
 }
 
-Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruction instr) {
-    switch (instr)
+Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruction decoded_instr, Garand::GarandInstruction instr, Garand::Memory mem) {
+    switch (decoded_instr)
     {
         case MREAD:
-            return Garand::InstructionSet::MemoryRead();
+            return Garand::InstructionSet::MemoryRead(instr, mem);
         case MWRITE:
-            return Garand::InstructionSet::MemoryWrite();
+            return Garand::InstructionSet::MemoryWrite(instr, mem);
         case BIND:
-            return Garand::InstructionSet::Bind();
+            return Garand::InstructionSet::Bind(instr, mem);
         case UNBIND:
-            return Garand::InstructionSet::Unbind();
+            return Garand::InstructionSet::Unbind(instr, mem);
         case BRUHCC_AL:
-            return Garand::InstructionSet::BRUHCC_AL();
+            return Garand::InstructionSet::BRUHCC_AL(instr, mem);
         case BRUHCC_EQ:
-            return Garand::InstructionSet::BRUHCC_EQ();
+            return Garand::InstructionSet::BRUHCC_EQ(instr, mem);
         case BRUHCC_NE:
-            return Garand::InstructionSet::BRUHCC_NE();
+            return Garand::InstructionSet::BRUHCC_NE(instr, mem);
         case BRUHCC_LO:
-            return Garand::InstructionSet::BRUHCC_LO();
+            return Garand::InstructionSet::BRUHCC_LO(instr, mem);
         case BRUHCC_HS:
-            return Garand::InstructionSet::BRUHCC_HS();
+            return Garand::InstructionSet::BRUHCC_HS(instr, mem);
         case BRUHCC_LT:
-            return Garand::InstructionSet::BRUHCC_LT();
+            return Garand::InstructionSet::BRUHCC_LT(instr, mem);
         case BRUHCC_GE:
-            return Garand::InstructionSet::BRUHCC_GE();
+            return Garand::InstructionSet::BRUHCC_GE(instr, mem);
         case BRUHCC_HI:
-            return Garand::InstructionSet::BRUHCC_HI();
+            return Garand::InstructionSet::BRUHCC_HI(instr, mem);
         case BRUHCC_LS:
-            return Garand::InstructionSet::BRUHCC_LS();
+            return Garand::InstructionSet::BRUHCC_LS(instr, mem);
         case BRUHCC_GT:
-            return Garand::InstructionSet::BRUHCC_GT();
+            return Garand::InstructionSet::BRUHCC_GT(instr, mem);
         case BRUHCC_LE:
-            return Garand::InstructionSet::BRUHCC_LE();
+            return Garand::InstructionSet::BRUHCC_LE(instr, mem);
         case BRUHCC_VC:
-            return Garand::InstructionSet::BRUHCC_VC();
+            return Garand::InstructionSet::BRUHCC_VC(instr, mem);
         case BRUHCC_VS:
-            return Garand::InstructionSet::BRUHCC_VS();
+            return Garand::InstructionSet::BRUHCC_VS(instr, mem);
         case BRUHCC_PL:
-            return Garand::InstructionSet::BRUHCC_PL();
+            return Garand::InstructionSet::BRUHCC_PL(instr, mem);
         case BRUHCC_NG:
-            return Garand::InstructionSet::BRUHCC_NG();
+            return Garand::InstructionSet::BRUHCC_NG(instr, mem);
         case BCC_AL:
-            return Garand::InstructionSet::BCC_AL();
+            return Garand::InstructionSet::BCC_AL(instr, mem);
         case BCC_EQ:
-            return Garand::InstructionSet::BCC_EQ();
+            return Garand::InstructionSet::BCC_EQ(instr, mem);
         case BCC_NE:
-            return Garand::InstructionSet::BCC_NE();
+            return Garand::InstructionSet::BCC_NE(instr, mem);
         case BCC_LO:
-            return Garand::InstructionSet::BCC_LO();
+            return Garand::InstructionSet::BCC_LO(instr, mem);
         case BCC_HS:
-            return Garand::InstructionSet::BCC_HS();
+            return Garand::InstructionSet::BCC_HS(instr, mem);
         case BCC_LT:
-            return Garand::InstructionSet::BCC_LT();
+            return Garand::InstructionSet::BCC_LT(instr, mem);
         case BCC_GE:
-            return Garand::InstructionSet::BCC_GE();
+            return Garand::InstructionSet::BCC_GE(instr, mem);
         case BCC_HI:
-            return Garand::InstructionSet::BCC_HI();
+            return Garand::InstructionSet::BCC_HI(instr, mem);
         case BCC_LS:
-            return Garand::InstructionSet::BCC_LS();
+            return Garand::InstructionSet::BCC_LS(instr, mem);
         case BCC_GT:
-            return Garand::InstructionSet::BCC_GT();
+            return Garand::InstructionSet::BCC_GT(instr, mem);
         case BCC_LE:
-            return Garand::InstructionSet::BCC_LE();
+            return Garand::InstructionSet::BCC_LE(instr, mem);
         case BCC_VC:
-            return Garand::InstructionSet::BCC_VC();
+            return Garand::InstructionSet::BCC_VC(instr, mem);
         case BCC_VS:
-            return Garand::InstructionSet::BCC_VS();
+            return Garand::InstructionSet::BCC_VS(instr, mem);
         case BCC_PL:
-            return Garand::InstructionSet::BCC_PL();
+            return Garand::InstructionSet::BCC_PL(instr, mem);
         case BCC_NG:
-            return Garand::InstructionSet::BCC_NG();
+            return Garand::InstructionSet::BCC_NG(instr, mem);
         case ADD:
-            return Garand::InstructionSet::Add();
+            return Garand::InstructionSet::Add(instr, mem);
         case ADDI:
-            return Garand::InstructionSet::AddImmediate();
+            return Garand::InstructionSet::AddImmediate(instr, mem);
         case FX_ADD:
-            return Garand::InstructionSet::FX_Add();
+            return Garand::InstructionSet::FX_Add(instr, mem);
         case FX_ADDI:
-            return Garand::InstructionSet::FX_AddImmediate();
+            return Garand::InstructionSet::FX_AddImmediate(instr, mem);
         case SUB:
-            return Garand::InstructionSet::Subtract();
+            return Garand::InstructionSet::Subtract(instr, mem);
         case SUBI:
-            return Garand::InstructionSet::SubtractImmediate();
+            return Garand::InstructionSet::SubtractImmediate(instr, mem);
         case CMP:
-            return Garand::InstructionSet::Compare();
+            return Garand::InstructionSet::Compare(instr, mem);
         case CMPI:
-            return Garand::InstructionSet::CompareImmediate();
+            return Garand::InstructionSet::CompareImmediate(instr, mem);
         case FX_SUB:
-            return Garand::InstructionSet::FX_Subtract();
+            return Garand::InstructionSet::FX_Subtract(instr, mem);
         case FX_SUBI:
-            return Garand::InstructionSet::FX_SubtractImmediate();
+            return Garand::InstructionSet::FX_SubtractImmediate(instr, mem);
         case MUL:
-            return Garand::InstructionSet::Multiply();
+            return Garand::InstructionSet::Multiply(instr, mem);
         case MULI:
-            return Garand::InstructionSet::MultiplyImmediate();
+            return Garand::InstructionSet::MultiplyImmediate(instr, mem);
         case MADD:
-            return Garand::InstructionSet::MultiplyAdd();
+            return Garand::InstructionSet::MultiplyAdd(instr, mem);
         case FX_MUL:
-            return Garand::InstructionSet::FX_Multiply();
+            return Garand::InstructionSet::FX_Multiply(instr, mem);
         case FX_MULI:
-            return Garand::InstructionSet::FX_MultiplyImmediate();
+            return Garand::InstructionSet::FX_MultiplyImmediate(instr, mem);
         case FX_MADD:
-            return Garand::InstructionSet::FX_MultiplyAdd();
+            return Garand::InstructionSet::FX_MultiplyAdd(instr, mem);
         case DIV:
-            return Garand::InstructionSet::Divide();
+            return Garand::InstructionSet::Divide(instr, mem);
         case DIVI:
-            return Garand::InstructionSet::DivideImmediate();
+            return Garand::InstructionSet::DivideImmediate(instr, mem);
         case FX_DIV:
-            return Garand::InstructionSet::FX_Divide();
+            return Garand::InstructionSet::FX_Divide(instr, mem);
         case FX_DIVI:
-            return Garand::InstructionSet::FX_DivideImmediate();
+            return Garand::InstructionSet::FX_DivideImmediate(instr, mem);
         case AND:
-            return Garand::InstructionSet::AND();
+            return Garand::InstructionSet::AND(instr, mem);
         case ANDI:
-            return Garand::InstructionSet::ANDImmediate();
+            return Garand::InstructionSet::ANDImmediate(instr, mem);
         case TEST:
-            return Garand::InstructionSet::Test();
+            return Garand::InstructionSet::Test(instr, mem);
         case NAND:
-            return Garand::InstructionSet::NAND();
+            return Garand::InstructionSet::NAND(instr, mem);
         case NANDI:
-            return Garand::InstructionSet::NANDImmediate();
+            return Garand::InstructionSet::NANDImmediate(instr, mem);
         case OR:
-            return Garand::InstructionSet::OR();
+            return Garand::InstructionSet::OR(instr, mem);
         case ORI:
-            return Garand::InstructionSet::ORImmediate();
+            return Garand::InstructionSet::ORImmediate(instr, mem);
         case XOR:
-            return Garand::InstructionSet::XOR();
+            return Garand::InstructionSet::XOR(instr, mem);
         case XORI:
-            return Garand::InstructionSet::XORImmediate();
+            return Garand::InstructionSet::XORImmediate(instr, mem);
         case LSL:
-            return Garand::InstructionSet::LogicalShiftLeft();
+            return Garand::InstructionSet::LogicalShiftLeft(instr, mem);
         case LSLI:
-            return Garand::InstructionSet::LogicalShiftLeftImmediate();
+            return Garand::InstructionSet::LogicalShiftLeftImmediate(instr, mem);
         case LSR:
-            return Garand::InstructionSet::LogicalShiftRight();
+            return Garand::InstructionSet::LogicalShiftRight(instr, mem);
         case LSRI:
-            return Garand::InstructionSet::LogicalShiftRightImmediate();
+            return Garand::InstructionSet::LogicalShiftRightImmediate(instr, mem);
         case RSR:
-            return Garand::InstructionSet::RotationalShiftRight();
+            return Garand::InstructionSet::RotationalShiftRight(instr, mem);
         case RSRI:
-            return Garand::InstructionSet::RotationalShiftRightImmediate();
+            return Garand::InstructionSet::RotationalShiftRightImmediate(instr, mem);
         case NOT:
-            return Garand::InstructionSet::NOT();
+            return Garand::InstructionSet::NOT(instr, mem);
         default:
             Garand:InstructionWriteBack wb;
             return wb;

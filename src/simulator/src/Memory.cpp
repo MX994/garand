@@ -1,12 +1,12 @@
 #include "Memory.hpp"
 #include <string.h>
-#include <fmt/format.h>
+// #include <fmt/format.h>
 
 namespace Garand {
     CacheBlock *Memory::FindBlock(CacheAddress Addr) {
         CacheBlock *Block = &Garand::Blocks[Addr.Index];
         auto id = Addr.Index;
-        fmt::print("Cache block {} used\n", id);
+        // fmt::print("Cache block {} used\n", id);
         if (Block->Tag != Addr.Tag || !Block->Valid) {
             // Miss; Replace block.
             counter += CACHE_MISS_PENALTY;

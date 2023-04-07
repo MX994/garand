@@ -1,86 +1,94 @@
 #include <cstdint>
 
+#include "Memory.hpp"
+
 #ifndef GARAND_INSTRUCTIONS_HPP
 #define GARAND_INSTRUCTIONS_HPP
 
 namespace Garand {
+    struct GarandInstruction {
+        uint8_t ConditionFlags : 4;
+        uint8_t Operation : 6;
+        uint64_t InstructionSpecific: 60;
+    };
+
     struct InstructionWriteBack {
         uint64_t value;
-        uint64_t location;
+        AddressSize address;
     };
 
     class InstructionSet {
         public:
-            static Garand::InstructionWriteBack MemoryRead();
-            static Garand::InstructionWriteBack MemoryWrite();
-            static Garand::InstructionWriteBack Bind();
-            static Garand::InstructionWriteBack Unbind();
-            static Garand::InstructionWriteBack BRUHCC_AL();
-            static Garand::InstructionWriteBack BRUHCC_EQ();
-            static Garand::InstructionWriteBack BRUHCC_NE();
-            static Garand::InstructionWriteBack BRUHCC_LO();
-            static Garand::InstructionWriteBack BRUHCC_HS();
-            static Garand::InstructionWriteBack BRUHCC_LT();
-            static Garand::InstructionWriteBack BRUHCC_GE();
-            static Garand::InstructionWriteBack BRUHCC_HI();
-            static Garand::InstructionWriteBack BRUHCC_LS();
-            static Garand::InstructionWriteBack BRUHCC_GT();
-            static Garand::InstructionWriteBack BRUHCC_LE();
-            static Garand::InstructionWriteBack BRUHCC_VC();
-            static Garand::InstructionWriteBack BRUHCC_VS();
-            static Garand::InstructionWriteBack BRUHCC_PL();
-            static Garand::InstructionWriteBack BRUHCC_NG();
-            static Garand::InstructionWriteBack BCC_AL();
-            static Garand::InstructionWriteBack BCC_EQ();
-            static Garand::InstructionWriteBack BCC_NE();
-            static Garand::InstructionWriteBack BCC_LO();
-            static Garand::InstructionWriteBack BCC_HS();
-            static Garand::InstructionWriteBack BCC_LT();
-            static Garand::InstructionWriteBack BCC_GE();
-            static Garand::InstructionWriteBack BCC_HI();
-            static Garand::InstructionWriteBack BCC_LS();
-            static Garand::InstructionWriteBack BCC_GT();
-            static Garand::InstructionWriteBack BCC_LE();
-            static Garand::InstructionWriteBack BCC_VC();
-            static Garand::InstructionWriteBack BCC_VS();
-            static Garand::InstructionWriteBack BCC_PL();
-            static Garand::InstructionWriteBack BCC_NG();
-            static Garand::InstructionWriteBack Add();
-            static Garand::InstructionWriteBack AddImmediate();
-            static Garand::InstructionWriteBack FX_Add();
-            static Garand::InstructionWriteBack FX_AddImmediate();
-            static Garand::InstructionWriteBack Subtract();
-            static Garand::InstructionWriteBack SubtractImmediate();
-            static Garand::InstructionWriteBack Compare();
-            static Garand::InstructionWriteBack CompareImmediate();
-            static Garand::InstructionWriteBack FX_Subtract();
-            static Garand::InstructionWriteBack FX_SubtractImmediate();
-            static Garand::InstructionWriteBack Multiply();
-            static Garand::InstructionWriteBack MultiplyImmediate();
-            static Garand::InstructionWriteBack MultiplyAdd();
-            static Garand::InstructionWriteBack FX_Multiply();
-            static Garand::InstructionWriteBack FX_MultiplyImmediate();
-            static Garand::InstructionWriteBack FX_MultiplyAdd();
-            static Garand::InstructionWriteBack Divide();
-            static Garand::InstructionWriteBack DivideImmediate();
-            static Garand::InstructionWriteBack FX_Divide();
-            static Garand::InstructionWriteBack FX_DivideImmediate();
-            static Garand::InstructionWriteBack AND();
-            static Garand::InstructionWriteBack ANDImmediate();
-            static Garand::InstructionWriteBack Test();
-            static Garand::InstructionWriteBack NAND();
-            static Garand::InstructionWriteBack NANDImmediate();
-            static Garand::InstructionWriteBack OR();
-            static Garand::InstructionWriteBack ORImmediate();
-            static Garand::InstructionWriteBack XOR();
-            static Garand::InstructionWriteBack XORImmediate();
-            static Garand::InstructionWriteBack LogicalShiftLeft();
-            static Garand::InstructionWriteBack LogicalShiftLeftImmediate();
-            static Garand::InstructionWriteBack LogicalShiftRight();
-            static Garand::InstructionWriteBack LogicalShiftRightImmediate();
-            static Garand::InstructionWriteBack RotationalShiftRight();
-            static Garand::InstructionWriteBack RotationalShiftRightImmediate();
-            static Garand::InstructionWriteBack NOT();
+            static Garand::InstructionWriteBack MemoryRead(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack MemoryWrite(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack Bind(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack Unbind(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BRUHCC_AL(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BRUHCC_EQ(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BRUHCC_NE(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BRUHCC_LO(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BRUHCC_HS(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BRUHCC_LT(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BRUHCC_GE(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BRUHCC_HI(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BRUHCC_LS(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BRUHCC_GT(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BRUHCC_LE(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BRUHCC_VC(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BRUHCC_VS(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BRUHCC_PL(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BRUHCC_NG(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BCC_AL(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BCC_EQ(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BCC_NE(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BCC_LO(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BCC_HS(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BCC_LT(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BCC_GE(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BCC_HI(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BCC_LS(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BCC_GT(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BCC_LE(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BCC_VC(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BCC_VS(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BCC_PL(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack BCC_NG(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack Add(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack AddImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack FX_Add(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack FX_AddImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack Subtract(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack SubtractImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack Compare(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack CompareImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack FX_Subtract(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack FX_SubtractImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack Multiply(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack MultiplyImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack MultiplyAdd(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack FX_Multiply(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack FX_MultiplyImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack FX_MultiplyAdd(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack Divide(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack DivideImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack FX_Divide(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack FX_DivideImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack AND(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack ANDImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack Test(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack NAND(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack NANDImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack OR(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack ORImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack XOR(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack XORImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack LogicalShiftLeft(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack LogicalShiftLeftImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack LogicalShiftRight(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack LogicalShiftRightImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack RotationalShiftRight(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack RotationalShiftRightImmediate(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack NOT(Garand::GarandInstruction instr, Garand::Memory mem);
     };
 
     enum DecodedInstruction {
