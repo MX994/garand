@@ -27,7 +27,7 @@ FetchContent_Declare(
   GIT_TAG        ea49dd3c6803088d50b496e3fe981501543b7cbc
 )
 FetchContent_Populate(memoryview)
-file(GLOB sources src/simulator/*.cpp src/simulator/src/Memory.cpp)
+file(GLOB sources src/simulator/*.cpp src/simulator/src/Instruction.cpp src/simulator/src/Instructions.cpp src/simulator/src/Memory.cpp)
 
 add_executable(garand ${sources})
 target_include_directories(garand
