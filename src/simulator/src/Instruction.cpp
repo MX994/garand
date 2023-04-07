@@ -477,3 +477,7 @@ Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruc
             return wb;
     }
 }
+
+void Garand::Instruction::WriteBack(Garand::InstructionWriteBack write_back) {
+    // TODO: Implement WriteBack
+}
