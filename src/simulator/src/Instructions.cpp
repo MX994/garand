@@ -263,9 +263,21 @@ Garand::InstructionWriteBack Garand::InstructionSet::Add(Garand::GarandInstructi
     return wb;
 }
 
-Garand::InstructionWriteBack Garand::InstructionSet::AddImmediate(Garand::GarandInstruction instr, Garand::Memory mem) {
-    // TODO: Implement Instruction
+Garand::InstructionWriteBack Garand::InstructionSet::AddImmediate(Garand::GarandInstruction instr, Garand::Memory mem, uint64_t* regs) {
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+
+    int val_index = (instr.InstructionSpecific >> 8) & 0b111111;
+    uint64_t *val_reg = Garand::load_reg(regs, val_index);
+    int val_1 = *val_reg;
+
+    int imm = instr.InstructionSpecific & 0xFF;
+
+    wb.reg = reg_dest;
+    wb.value = val_1 + imm;
+
     return wb;
 }
 
@@ -287,9 +299,21 @@ Garand::InstructionWriteBack Garand::InstructionSet::Subtract(Garand::GarandInst
     return wb;
 }
 
-Garand::InstructionWriteBack Garand::InstructionSet::SubtractImmediate(Garand::GarandInstruction instr, Garand::Memory mem) {
-    // TODO: Implement Instruction
+Garand::InstructionWriteBack Garand::InstructionSet::SubtractImmediate(Garand::GarandInstruction instr, Garand::Memory mem, uint64_t* regs) {
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+
+    int val_index = (instr.InstructionSpecific >> 8) & 0b111111;
+    uint64_t *val_reg = Garand::load_reg(regs, val_index);
+    int val_1 = *val_reg;
+
+    int imm = instr.InstructionSpecific & 0xFF;
+
+    wb.reg = reg_dest;
+    wb.value = val_1 - imm;
+
     return wb;
 }
 
@@ -323,9 +347,21 @@ Garand::InstructionWriteBack Garand::InstructionSet::Multiply(Garand::GarandInst
     return wb;
 }
 
-Garand::InstructionWriteBack Garand::InstructionSet::MultiplyImmediate(Garand::GarandInstruction instr, Garand::Memory mem) {
-    // TODO: Implement Instruction
+Garand::InstructionWriteBack Garand::InstructionSet::MultiplyImmediate(Garand::GarandInstruction instr, Garand::Memory mem, uint64_t* regs) {
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+
+    int val_index = (instr.InstructionSpecific >> 8) & 0b111111;
+    uint64_t *val_reg = Garand::load_reg(regs, val_index);
+    int val_1 = *val_reg;
+
+    int imm = instr.InstructionSpecific & 0xFF;
+
+    wb.reg = reg_dest;
+    wb.value = val_1 * imm;
+
     return wb;
 }
 
@@ -359,9 +395,21 @@ Garand::InstructionWriteBack Garand::InstructionSet::Divide(Garand::GarandInstru
     return wb;
 }
 
-Garand::InstructionWriteBack Garand::InstructionSet::DivideImmediate(Garand::GarandInstruction instr, Garand::Memory mem) {
-    // TODO: Implement Instruction
+Garand::InstructionWriteBack Garand::InstructionSet::DivideImmediate(Garand::GarandInstruction instr, Garand::Memory mem, uint64_t* regs) {
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+
+    int val_index = (instr.InstructionSpecific >> 8) & 0b111111;
+    uint64_t *val_reg = Garand::load_reg(regs, val_index);
+    int val_1 = *val_reg;
+
+    int imm = instr.InstructionSpecific & 0xFF;
+
+    wb.reg = reg_dest;
+    wb.value = val_1 / imm;
+
     return wb;
 }
 

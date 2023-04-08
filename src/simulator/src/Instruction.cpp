@@ -403,7 +403,7 @@ Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruc
         case ADD:
             return Garand::InstructionSet::Add(instr, mem);
         case ADDI:
-            return Garand::InstructionSet::AddImmediate(instr, mem);
+            return Garand::InstructionSet::AddImmediate(instr, mem, regs);
         case FX_ADD:
             return Garand::InstructionSet::FX_Add(instr, mem);
         case FX_ADDI:
@@ -411,7 +411,7 @@ Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruc
         case SUB:
             return Garand::InstructionSet::Subtract(instr, mem);
         case SUBI:
-            return Garand::InstructionSet::SubtractImmediate(instr, mem);
+            return Garand::InstructionSet::SubtractImmediate(instr, mem, regs);
         case CMP:
             return Garand::InstructionSet::Compare(instr, mem);
         case CMPI:
@@ -423,7 +423,7 @@ Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruc
         case MUL:
             return Garand::InstructionSet::Multiply(instr, mem);
         case MULI:
-            return Garand::InstructionSet::MultiplyImmediate(instr, mem);
+            return Garand::InstructionSet::MultiplyImmediate(instr, mem, regs);
         case MADD:
             return Garand::InstructionSet::MultiplyAdd(instr, mem);
         case FX_MUL:
@@ -435,7 +435,7 @@ Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruc
         case DIV:
             return Garand::InstructionSet::Divide(instr, mem);
         case DIVI:
-            return Garand::InstructionSet::DivideImmediate(instr, mem);
+            return Garand::InstructionSet::DivideImmediate(instr, mem, regs);
         case FX_DIV:
             return Garand::InstructionSet::FX_Divide(instr, mem);
         case FX_DIVI:
