@@ -20,8 +20,8 @@ namespace Garand {
 
     class InstructionSet {
         public:
-            static Garand::InstructionWriteBack MemoryRead(Garand::GarandInstruction instr, Garand::Memory mem, Garand::Registers regs);
-            static Garand::InstructionWriteBack MemoryWrite(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack MemoryRead(Garand::GarandInstruction instr, Garand::Memory mem, uint64_t* regs);
+            static Garand::InstructionWriteBack MemoryWrite(Garand::GarandInstruction instr, Garand::Memory mem, uint64_t* regs);
             static Garand::InstructionWriteBack Bind(Garand::GarandInstruction instr, Garand::Memory mem);
             static Garand::InstructionWriteBack Unbind(Garand::GarandInstruction instr, Garand::Memory mem);
             static Garand::InstructionWriteBack BRUHCC_AL(Garand::GarandInstruction instr, Garand::Memory mem);

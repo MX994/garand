@@ -4,27 +4,64 @@
 
 #include <iostream>
 
-Garand::InstructionWriteBack Garand::InstructionSet::MemoryRead(Garand::GarandInstruction instr, Garand::Memory mem, Garand::Registers regs) {
-    // TODO: Implement Instruction
+Garand::InstructionWriteBack Garand::InstructionSet::MemoryRead(Garand::GarandInstruction instr, Garand::Memory mem, uint64_t* regs) {
     Garand::InstructionWriteBack wb;
-    int dest = (instr.InstructionSpecific >> 15) & 0b1111111;
-    int src = (instr.InstructionSpecific >> 8) & 0b1111111;
-    int offset = (instr.InstructionSpecific >> 1) & 0b1111111;
 
-    uint64_t *reg_src = (Garand::load_reg((uint64_t)(&regs), src));
-    uint64_t *reg_offset = (Garand::load_reg((uint64_t)(&regs), offset));
+    int imm_flag = (instr.InstructionSpecific >> 20) & 0b1;
 
-    Garand::LoadSize *addr = mem.load(*reg_src + *reg_offset);
+    // Destination address will be same for all
+    int dest = (instr.InstructionSpecific >> 14) & 0b111111;
+    wb.reg = (Garand::load_reg(regs, dest));
 
-    wb.reg = (Garand::load_reg((uint64_t)(&regs), dest));
-    wb.value = *addr;
+    if (!imm_flag) {
+        int src = (instr.InstructionSpecific >> 8) & 0b111111;
+        int offset = (instr.InstructionSpecific >> 2) & 0b111111;
+
+        uint64_t *reg_src = (Garand::load_reg(regs, src));
+        uint64_t *reg_offset = (Garand::load_reg(regs, offset));
+
+        Garand::LoadSize *addr = mem.load(*reg_src + *reg_offset);
+
+        wb.value = *addr;
+    } else {
+        int imm = instr.InstructionSpecific & 0x3FFF;
+        wb.value = *(mem.load(imm));
+    }
 
     return wb;
 }
 
-Garand::InstructionWriteBack Garand::InstructionSet::MemoryWrite(Garand::GarandInstruction instr, Garand::Memory mem) {
-    // TODO: Implement Instruction
+// Example for `MWRITE R15, 50`
+// Garand::GarandInstruction instr_b;
+// instr_b.Operation = 0x0;
+// instr_b.ConditionFlags = 0x1;
+// instr_b.InstructionSpecific = 1 << 20 | 15 << 14 | 50;
+Garand::InstructionWriteBack Garand::InstructionSet::MemoryWrite(Garand::GarandInstruction instr, Garand::Memory mem, uint64_t* regs) {
     Garand::InstructionWriteBack wb;
+
+    int imm_flag = (instr.InstructionSpecific >> 20) & 0b1;
+
+    if (!imm_flag) {
+        int src_index = (instr.InstructionSpecific >> 14) & 0b111111;
+        int dest_index = (instr.InstructionSpecific >> 8) & 0b111111;
+        int offset = (instr.InstructionSpecific >> 2) & 0b111111;
+
+        uint64_t *reg_src = Garand::load_reg(regs, src_index);
+        uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+        uint64_t *reg_offset = Garand::load_reg(regs, offset);
+
+        wb.reg = (uint64_t*) (*reg_dest + *reg_offset);
+        wb.value = *reg_src;
+    } else {
+        int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+        uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+
+        int imm = instr.InstructionSpecific & 0x3FFF;
+
+        wb.reg = reg_dest;
+        wb.value = imm;
+    }
+
     return wb;
 }
 

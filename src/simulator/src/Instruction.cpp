@@ -329,13 +329,13 @@ Garand::DecodedInstruction Garand::Instruction::Decode(Garand::GarandInstruction
     }
 }
 
-Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruction decoded_instr, Garand::GarandInstruction instr, Garand::Memory mem, Garand::Registers regs) {
+Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruction decoded_instr, Garand::GarandInstruction instr, Garand::Memory mem, uint64_t* regs) {
     switch (decoded_instr)
     {
         case MREAD:
             return Garand::InstructionSet::MemoryRead(instr, mem, regs);
         case MWRITE:
-            return Garand::InstructionSet::MemoryWrite(instr, mem);
+            return Garand::InstructionSet::MemoryWrite(instr, mem, regs);
         case BIND:
             return Garand::InstructionSet::Bind(instr, mem);
         case UNBIND:
@@ -480,4 +480,5 @@ Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruc
 
 void Garand::Instruction::WriteBack(Garand::InstructionWriteBack write_back) {
     // TODO: Implement WriteBack
+    *(write_back.reg) = write_back.value;
 }
