@@ -9,7 +9,7 @@ namespace Garand {
     struct GarandInstruction {
         uint8_t ConditionFlags : 4;
         uint8_t Operation : 6;
-        uint64_t InstructionSpecific: 60;
+        uint64_t InstructionSpecific: 22;
     };
 
     struct InstructionWriteBack {
