@@ -30,5 +30,7 @@ namespace Garand {
         uint64_t StackPointer;
         uint64_t ProgramCounter;
     };
+
+    uint64_t* load_reg(uint64_t registers, uint8_t reg_index);
 } // namespace Garand
 #endif

@@ -329,11 +329,11 @@ Garand::DecodedInstruction Garand::Instruction::Decode(Garand::GarandInstruction
     }
 }
 
-Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruction decoded_instr, Garand::GarandInstruction instr, Garand::Memory mem) {
+Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruction decoded_instr, Garand::GarandInstruction instr, Garand::Memory mem, Garand::Registers regs) {
     switch (decoded_instr)
     {
         case MREAD:
-            return Garand::InstructionSet::MemoryRead(instr, mem);
+            return Garand::InstructionSet::MemoryRead(instr, mem, regs);
         case MWRITE:
             return Garand::InstructionSet::MemoryWrite(instr, mem);
         case BIND:

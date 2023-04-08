@@ -4,9 +4,21 @@
 
 #include <iostream>
 
-Garand::InstructionWriteBack Garand::InstructionSet::MemoryRead(Garand::GarandInstruction instr, Garand::Memory mem) {
+Garand::InstructionWriteBack Garand::InstructionSet::MemoryRead(Garand::GarandInstruction instr, Garand::Memory mem, Garand::Registers regs) {
     // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+    int dest = (instr.InstructionSpecific >> 15) & 0b1111111;
+    int src = (instr.InstructionSpecific >> 8) & 0b1111111;
+    int offset = (instr.InstructionSpecific >> 1) & 0b1111111;
+
+    uint64_t *reg_src = (Garand::load_reg((uint64_t)(&regs), src));
+    uint64_t *reg_offset = (Garand::load_reg((uint64_t)(&regs), offset));
+
+    Garand::LoadSize *addr = mem.load(*reg_src + *reg_offset);
+
+    wb.reg = (Garand::load_reg((uint64_t)(&regs), dest));
+    wb.value = *addr;
+
     return wb;
 }
 

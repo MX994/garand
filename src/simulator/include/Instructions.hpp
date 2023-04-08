@@ -1,5 +1,6 @@
 #include <cstdint>
 
+#include "Registers.hpp"
 #include "Memory.hpp"
 
 #ifndef GARAND_INSTRUCTIONS_HPP
@@ -14,12 +15,12 @@ namespace Garand {
 
     struct InstructionWriteBack {
         uint64_t value;
-        AddressSize address;
+        uint64_t* reg;
     };
 
     class InstructionSet {
         public:
-            static Garand::InstructionWriteBack MemoryRead(Garand::GarandInstruction instr, Garand::Memory mem);
+            static Garand::InstructionWriteBack MemoryRead(Garand::GarandInstruction instr, Garand::Memory mem, Garand::Registers regs);
             static Garand::InstructionWriteBack MemoryWrite(Garand::GarandInstruction instr, Garand::Memory mem);
             static Garand::InstructionWriteBack Bind(Garand::GarandInstruction instr, Garand::Memory mem);
             static Garand::InstructionWriteBack Unbind(Garand::GarandInstruction instr, Garand::Memory mem);

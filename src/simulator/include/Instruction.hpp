@@ -10,7 +10,7 @@ namespace Garand {
         public:
             static Instruction Encode();
             Garand::DecodedInstruction Decode(Garand::GarandInstruction instr);
-            Garand::InstructionWriteBack Execute(Garand::DecodedInstruction decoded_instr, Garand::GarandInstruction instr, Garand::Memory mem);
+            Garand::InstructionWriteBack Execute(Garand::DecodedInstruction decoded_instr, Garand::GarandInstruction instr, Garand::Memory mem, Garand::Registers regs);
             void WriteBack(Garand::InstructionWriteBack write_back);
     };
 } // namespace Garand
