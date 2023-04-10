@@ -74,9 +74,10 @@ void Processor::Decode() {
 }
 
 void Processor::ExecuteMemload() {
-    if (Pipeline[Stage::EXECUTE]->DecodedInstruction ==
-                Garand::DecodedInstruction::MREAD &&
-            Pipeline[Stage::EXECUTE]->CycleMax[Stage::EXECUTE] == 0) {
+    auto ins = Pipeline[Stage::EXECUTE]->DecodedInstruction;
+    if ((ins == Garand::DecodedInstruction::MREAD ||
+         ins == Garand::DecodedInstruction::MWRITE) &&
+        Pipeline[Stage::EXECUTE]->CycleMax[Stage::EXECUTE] == 0) {
         // Memory reads and writes are a special case.
 
         // Parse the arguments.
