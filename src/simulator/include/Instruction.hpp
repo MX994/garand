@@ -9,9 +9,9 @@ namespace Garand {
     class Instruction {
         public:
             static Instruction Encode();
-            Garand::DecodedInstruction Decode(Garand::GarandInstruction instr);
-            Garand::InstructionWriteBack Execute(Garand::DecodedInstruction decoded_instr, Garand::GarandInstruction instr, Garand::Memory mem, uint64_t* regs);
-            void WriteBack(Garand::InstructionWriteBack write_back);
+            static Garand::DecodedInstruction Decode(Garand::GarandInstruction instr);
+            static Garand::InstructionWriteBack Execute(Garand::DecodedInstruction decoded_instr, Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs);
+            static void WriteBack(Garand::InstructionWriteBack write_back);
     };
 } // namespace Garand
 
