@@ -18,11 +18,6 @@ namespace Garand {
       WRITE_BACK
   };
 
-  struct MemoryWk {
-      uint8_t Source;
-      uint32_t CyclesRemaining;
-  };
-
   struct InstructionWk {
     GarandInstruction Instruction;
     DecodedInstruction DecodedInstruction;
@@ -44,6 +39,7 @@ namespace Garand {
       void Execute();
       void WriteBack();
       void Tick();
+      void ExecuteMemload();
 
     public:
       void Step();

@@ -13,6 +13,10 @@ void Processor::Step() {
     for (int s = Stage::WRITE_BACK; s >= Stage::FETCH; --s) {
         if (Pipeline[s]) {
             ++Pipeline[s]->CycleCount;
+            if (s == Stage::EXECUTE && Pipeline[s]->CycleMax[s] == 0) {
+                // This will modify the CycleMax
+                ExecuteMemload();
+            }
             if (Pipeline[s]->CycleCount == Pipeline[s]->CycleMax[s]) {
                 if (s == Stage::FETCH) {
                     Fetch();
@@ -66,6 +70,37 @@ void Processor::Decode() {
     if (Pipeline[Stage::DECODE]) {
         Pipeline[Stage::DECODE]->DecodedInstruction =
             Instruction::Decode(Pipeline[Stage::DECODE]->Instruction);
+    }
+}
+
+void Processor::ExecuteMemload() {
+    if (Pipeline[Stage::EXECUTE]->DecodedInstruction ==
+                Garand::DecodedInstruction::MREAD &&
+            Pipeline[Stage::EXECUTE]->CycleMax[Stage::EXECUTE] == 0) {
+        // Memory reads and writes are a special case.
+
+        // Parse the arguments.
+        uint32_t Args =
+            Pipeline[Stage::EXECUTE]->Instruction.InstructionSpecific;
+        uint32_t BaseAddr = Args >> 8 & 0b111111;
+
+        // Just in case we want to work with these...
+        // Uncomment them :).
+
+        // uint32_t Shift = Args >> 2 & 0b111111;
+        // BaseAddr += Shift;
+
+        // Parse address.
+        CacheAddress Addr = {
+            .Tag = (uint8_t)((BaseAddr >> 0x18) & 0xFF),
+            .Index = ((BaseAddr >> 0x10) & 0xFF) % 0x100,
+            .Offset = BaseAddr & 0xFFFF,
+        };
+
+        Pipeline[Stage::EXECUTE]->CycleMax[Stage::EXECUTE] =
+            WkRAM.IsBlockInCache(Addr, &Garand::Blocks[Addr.Index])
+                ? CACHE_HIT_CYCLES
+                : CACHE_MISS_CYCLES;
     }
 }
 
