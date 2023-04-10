@@ -1,7 +1,7 @@
+#include <array>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <array>
 
 #include "Processor.hpp"
 
@@ -41,14 +41,16 @@ void Processor::Step() {
 void Processor::Queue(GarandInstruction Inst) {
     InstructionWk Wk;
     Wk.Instruction = Inst;
-    std::array<unsigned, 4> CycleTime{ 1, 2, 3, 4 };
-    std::transform(CycleTime.begin(), CycleTime.end(), Wk.CycleMax, [](unsigned x) {return x;});
+    std::array<unsigned, 4> CycleTime{1, 2, 3, 4};
+    std::transform(CycleTime.begin(), CycleTime.end(), Wk.CycleMax,
+                   [](unsigned x) { return x; });
     Wk.CycleCount = 0;
     InstructionQueue.push(Wk);
 }
 
 void Processor::Fetch() {
-    Pipeline[Stage::FETCH] = std::make_unique<InstructionWk>(InstructionQueue.front());
+    Pipeline[Stage::FETCH] =
+        std::make_unique<InstructionWk>(InstructionQueue.front());
     InstructionQueue.pop();
 }
 
@@ -60,8 +62,45 @@ void Processor::Decode() {
 }
 
 void Processor::Execute() {
+    // For the execution stage, it's imperative that we do not release the
+    // execution state until we are finally done.
     if (Pipeline[Stage::EXECUTE]) {
-        Pipeline[Stage::DECODE]->WriteBack = Instruction::Execute(Pipeline[Stage::DECODE]->DecodedInstruction, Pipeline[Stage::DECODE]->Instruction, WkRAM, (uint64_t*)&WkRegs);
+        if (Pipeline[Stage::EXECUTE]->DecodedInstruction ==
+                Garand::DecodedInstruction::MREAD &&
+            Pipeline[Stage::EXECUTE]->CycleMax[Stage::EXECUTE] == 0) {
+            // Memory reads and writes are a special case.
+
+            // Parse the arguments.
+            uint32_t Args =
+                Pipeline[Stage::EXECUTE]->Instruction.InstructionSpecific;
+            uint32_t BaseAddr = Args >> 8 & 0b111111;
+
+            // Just in case we want to work with these...
+            // Uncomment them :).
+
+            // uint32_t Shift = Args >> 2 & 0b111111;
+            // BaseAddr += Shift;
+
+            // Parse address.
+            CacheAddress Addr = {
+                .Tag = (uint8_t)((BaseAddr >> 0x18) & 0xFF),
+                .Index = ((BaseAddr >> 0x10) & 0xFF) % 0x100,
+                .Offset = BaseAddr & 0xFFFF,
+            };
+
+            Pipeline[Stage::EXECUTE]->CycleMax[Stage::EXECUTE] =
+                WkRAM.IsBlockInCache(Addr, &Garand::Blocks[Addr.Index])
+                    ? CACHE_HIT_CYCLES
+                    : CACHE_MISS_CYCLES;
+        }
+        if (Pipeline[Stage::EXECUTE]->CycleCount <
+            Pipeline[Stage::EXECUTE]->CycleMax[Stage::EXECUTE]) {
+            // Ignore.
+            return;
+        }
+        Pipeline[Stage::DECODE]->WriteBack = Instruction::Execute(
+            Pipeline[Stage::DECODE]->DecodedInstruction,
+            Pipeline[Stage::DECODE]->Instruction, WkRAM, (uint64_t *)&WkRegs);
     }
 }
 

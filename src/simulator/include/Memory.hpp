@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 #include <vector>
 
 #ifndef GARAND_MEMORY_HPP
@@ -9,8 +10,8 @@ using LoadSize = uint32_t;
 using AddressSize = uint32_t;
 constexpr uint16_t CACHE_BLOCK_COUNT = 0x100; // 2^8.
 constexpr uint32_t CACHE_BLOCK_SIZE = 0x10000; // 2 ^ 16.
-constexpr uint32_t CACHE_MISS_PENALTY = 0xDFA;
-constexpr uint32_t CACHE_HIT_PENALTY = 0x1FA;
+constexpr uint32_t CACHE_MISS_CYCLES = 0x15;
+constexpr uint32_t CACHE_HIT_CYCLES = 0x5;
 
 struct CacheAddress {
   uint32_t IsDirty : 1; // Dirty bit.
@@ -30,7 +31,6 @@ struct CacheBlock {
 inline CacheBlock Blocks[CACHE_BLOCK_COUNT];
 
 class Memory {
-  public:
   private:
     // Placeholders for now
     size_t size = 0;
@@ -45,7 +45,8 @@ class Memory {
     };
     // These two are placeholders for now
     LoadSize *load(AddressSize address);
-    CacheBlock *FindBlock(CacheAddress Addr);
+    CacheBlock *CacheCheckHitMiss(CacheAddress Addr);
+    bool IsBlockInCache(CacheAddress Addr, CacheBlock *Block);
     void store(AddressSize address, LoadSize value);
     size_t get_size();
     size_t get_counter();
@@ -53,6 +54,6 @@ class Memory {
     uint8_t *get_raw();
 };
 
-} // namespace Garand
+}; // namespace Garand
 
 #endif
