@@ -1,5 +1,8 @@
 #include "Instructions.hpp"
+#include "Instruction.hpp"
 #include "Registers.hpp"
+#include <queue>
+#include <memory>
 
 #ifndef GARAND_PROCESSOR_HPP
 #define GARAND_PROCESSOR_HPP
@@ -20,8 +23,9 @@ namespace Garand {
   };
 
   struct InstructionWk {
-    GarandInstruction *Instruction;
+    GarandInstruction Instruction;
     DecodedInstruction DecodedInstruction;
+    InstructionWriteBack WriteBack;
     unsigned int CycleCount;
     unsigned int CycleMax[PIPELINE_STAGES];
   };
@@ -31,15 +35,20 @@ namespace Garand {
       Memory WkRAM;
       Registers WkRegs;
       uint8_t *Program;
-      InstructionWk Pipeline[PIPELINE_STAGES];
+      std::unique_ptr<InstructionWk> Pipeline[PIPELINE_STAGES];
+      std::queue<InstructionWk> InstructionQueue;
+      uint64_t Clock = 0;
 
       void Fetch();
       void Decode();
       void Execute();
+      void WriteBack();
+      void Tick();
 
     public:
-      Processor(void *Program) : Program(Program);
-      void Tick();
+      Processor(uint8_t *Program) : Program(Program) {};
+      void Step();
+      void Queue(GarandInstruction);
   };
 } // namespace Garand
 

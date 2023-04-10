@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <array>
 
 #include "Processor.hpp"
 
@@ -9,65 +10,64 @@ void Processor::Tick() { Clock += 1; }
 
 void Processor::Step() {
     bool NextStageIsFree = true;
-    for (int Stage = Stage.WRITE_BACK; Stage > 0; --Stage) {
-        ++Pipeline[Stage].CycleCount;
-        if (Pipeline[Stage].CycleCount >= Pipeline[Stage].CycleMax[Stage]) {
-            if (Stage == Stage.FETCH) {
+    for (unsigned s = Stage::WRITE_BACK; s > 0; --s) {
+        ++Pipeline[s]->CycleCount;
+        if (Pipeline[s]->CycleCount >= Pipeline[s]->CycleMax[s]) {
+            if (s == Stage::FETCH) {
                 Fetch();
-            } else if (Stage == Stage.DECODE) {
+            } else if (s == Stage::DECODE) {
                 Decode();
-            } else if (Stage == Stage.EXECUTE) {
+            } else if (s == Stage::EXECUTE) {
                 Execute();
-            } else if (Stage == Stage.WRITE_BACK) {
+            } else if (s == Stage::WRITE_BACK) {
                 WriteBack();
             }
         }
-        if (Pipeline[Stage].CycleCount >= Pipeline[Stage].CycleMax[Stage] &&
+        if (Pipeline[s]->CycleCount >= Pipeline[s]->CycleMax[s] &&
             NextStageIsFree) {
-            Pipeline[Stage].CycleCount = 0;
-            if (Stage != Stage.WRITE_BACK) {
-                Pipeline[Stage + 1] = Pipeline[Stage];
+            Pipeline[s]->CycleCount = 0;
+            if (s != Stage::WRITE_BACK) {
+                *Pipeline[s + 1] = *Pipeline[s];
             }
-            Pipeline[Stage] = NULL;
+            Pipeline[s] = NULL;
             NextStageIsFree = true;
         } else {
-            NextStageIsFree = !Pipeline[Stage];
+            NextStageIsFree = !Pipeline[s];
         }
         Tick();
     }
 }
 
 void Processor::Queue(GarandInstruction Inst) {
-    InstructionWk *Wk = (InstructionWk *)calloc(sizeof(InstructionWk), 0);
-    Wk->Instruction = Inst;
-    Wk->CycleMax = [ 1, 2, 3, 4 ];
-    Pipeline[0] = Wk;
+    InstructionWk Wk;
+    Wk.Instruction = Inst;
+    std::array<unsigned, 4> CycleTime{ 1, 2, 3, 4 };
+    std::transform(CycleTime.begin(), CycleTime.end(), Wk.CycleMax, [](unsigned x) {return x;});
+    Wk.CycleCount = 0;
+    InstructionQueue.push(Wk);
 }
 
-void Processor::Fetch(GarandInstruction Inst) {
-    if (Pipeline[Stage.FETCH]) {
-    }
+void Processor::Fetch() {
+    Pipeline[Stage::FETCH] = std::make_unique<InstructionWk>(InstructionQueue.front());
+    InstructionQueue.pop();
 }
 
 void Processor::Decode() {
-    if (Pipeline[Stage.DECODE]) {
-        Pipeline[Stage.DECODE]->DecodedInstruction =
-            Instruction::Decode(Pipeline[Stage.DECODE]->Instruction);
+    if (Pipeline[Stage::DECODE]) {
+        Pipeline[Stage::DECODE]->DecodedInstruction =
+            Instruction::Decode(Pipeline[Stage::DECODE]->Instruction);
     }
 }
 
 void Processor::Execute() {
-    if (Pipeline[Stage.EXECUTE]) {
-        Garand::Instruction::Execute(Pipeline[Stage.DECODE]->DecodedInstruction, Pipeline[Stage.DECODE]->Instruction, &WkRAM, &WkRegs);
-    } else {
+    if (Pipeline[Stage::EXECUTE]) {
+        Pipeline[Stage::DECODE]->WriteBack = Instruction::Execute(Pipeline[Stage::DECODE]->DecodedInstruction, Pipeline[Stage::DECODE]->Instruction, WkRAM, (uint64_t*)&WkRegs);
     }
 }
 
 void Processor::WriteBack() {
-    if (Pipeline[Stage.WRITE_BACK]) {
-        // Something exists here; process it.
-        // TODO: Do fetch.
-    } else {
+    if (Pipeline[Stage::WRITE_BACK]) {
+        Garand::Instruction::WriteBack(Pipeline[Stage::WRITE_BACK]->WriteBack);
     }
 }
 } // namespace Garand
