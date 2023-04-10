@@ -57,5 +57,4 @@ namespace Garand {
     uint8_t *Memory::get_raw() {
         return this->memory_region.data();
     }
-
 }
