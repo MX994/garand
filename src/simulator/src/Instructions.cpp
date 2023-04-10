@@ -520,3 +520,86 @@ Garand::InstructionWriteBack Garand::InstructionSet::NOT(Garand::GarandInstructi
     Garand::InstructionWriteBack wb;
     return wb;
 }
+
+char const *Garand::get_ins_mnemonic(Garand::GarandInstruction ins) {
+    auto decoded_type = Garand::Instruction::Decode(ins);
+    using Garand::DecodedInstruction;
+
+    #define CASE_INS(MNEMONIC) case MNEMONIC: return #MNEMONIC "..."
+    switch(decoded_type) {
+        CASE_INS(Garand::DecodedInstruction::MREAD);
+        CASE_INS(Garand::DecodedInstruction::MWRITE);
+        CASE_INS(Garand::DecodedInstruction::BIND);
+        CASE_INS(Garand::DecodedInstruction::UNBIND);
+        CASE_INS(Garand::DecodedInstruction::BRUHCC_AL);
+        CASE_INS(Garand::DecodedInstruction::BRUHCC_EQ);
+        CASE_INS(Garand::DecodedInstruction::BRUHCC_NE);
+        CASE_INS(Garand::DecodedInstruction::BRUHCC_LO);
+        CASE_INS(Garand::DecodedInstruction::BRUHCC_HS);
+        CASE_INS(Garand::DecodedInstruction::BRUHCC_LT);
+        CASE_INS(Garand::DecodedInstruction::BRUHCC_GE);
+        CASE_INS(Garand::DecodedInstruction::BRUHCC_HI);
+        CASE_INS(Garand::DecodedInstruction::BRUHCC_LS);
+        CASE_INS(Garand::DecodedInstruction::BRUHCC_GT);
+        CASE_INS(Garand::DecodedInstruction::BRUHCC_LE);
+        CASE_INS(Garand::DecodedInstruction::BRUHCC_VC);
+        CASE_INS(Garand::DecodedInstruction::BRUHCC_VS);
+        CASE_INS(Garand::DecodedInstruction::BRUHCC_PL);
+        CASE_INS(Garand::DecodedInstruction::BRUHCC_NG);
+        CASE_INS(Garand::DecodedInstruction::BCC_AL);
+        CASE_INS(Garand::DecodedInstruction::BCC_EQ);
+        CASE_INS(Garand::DecodedInstruction::BCC_NE);
+        CASE_INS(Garand::DecodedInstruction::BCC_LO);
+        CASE_INS(Garand::DecodedInstruction::BCC_HS);
+        CASE_INS(Garand::DecodedInstruction::BCC_LT);
+        CASE_INS(Garand::DecodedInstruction::BCC_GE);
+        CASE_INS(Garand::DecodedInstruction::BCC_HI);
+        CASE_INS(Garand::DecodedInstruction::BCC_LS);
+        CASE_INS(Garand::DecodedInstruction::BCC_GT);
+        CASE_INS(Garand::DecodedInstruction::BCC_LE);
+        CASE_INS(Garand::DecodedInstruction::BCC_VC);
+        CASE_INS(Garand::DecodedInstruction::BCC_VS);
+        CASE_INS(Garand::DecodedInstruction::BCC_PL);
+        CASE_INS(Garand::DecodedInstruction::BCC_NG);
+        CASE_INS(Garand::DecodedInstruction::ADD);
+        CASE_INS(Garand::DecodedInstruction::ADDI);
+        CASE_INS(Garand::DecodedInstruction::FX_ADD);
+        CASE_INS(Garand::DecodedInstruction::FX_ADDI);
+        CASE_INS(Garand::DecodedInstruction::SUB);
+        CASE_INS(Garand::DecodedInstruction::SUBI);
+        CASE_INS(Garand::DecodedInstruction::CMP);
+        CASE_INS(Garand::DecodedInstruction::CMPI);
+        CASE_INS(Garand::DecodedInstruction::FX_SUB);
+        CASE_INS(Garand::DecodedInstruction::FX_SUBI);
+        CASE_INS(Garand::DecodedInstruction::MUL);
+        CASE_INS(Garand::DecodedInstruction::MULI);
+        CASE_INS(Garand::DecodedInstruction::MADD);
+        CASE_INS(Garand::DecodedInstruction::FX_MUL);
+        CASE_INS(Garand::DecodedInstruction::FX_MULI);
+        CASE_INS(Garand::DecodedInstruction::FX_MADD);
+        CASE_INS(Garand::DecodedInstruction::DIV);
+        CASE_INS(Garand::DecodedInstruction::DIVI);
+        CASE_INS(Garand::DecodedInstruction::FX_DIV);
+        CASE_INS(Garand::DecodedInstruction::FX_DIVI);
+        CASE_INS(Garand::DecodedInstruction::AND);
+        CASE_INS(Garand::DecodedInstruction::ANDI);
+        CASE_INS(Garand::DecodedInstruction::TEST);
+        CASE_INS(Garand::DecodedInstruction::NAND);
+        CASE_INS(Garand::DecodedInstruction::NANDI);
+        CASE_INS(Garand::DecodedInstruction::OR);
+        CASE_INS(Garand::DecodedInstruction::ORI);
+        CASE_INS(Garand::DecodedInstruction::XOR);
+        CASE_INS(Garand::DecodedInstruction::XORI);
+        CASE_INS(Garand::DecodedInstruction::LSL);
+        CASE_INS(Garand::DecodedInstruction::LSLI);
+        CASE_INS(Garand::DecodedInstruction::LSR);
+        CASE_INS(Garand::DecodedInstruction::LSRI);
+        CASE_INS(Garand::DecodedInstruction::RSR);
+        CASE_INS(Garand::DecodedInstruction::RSRI);
+        CASE_INS(Garand::DecodedInstruction::NOT);
+        CASE_INS(Garand::DecodedInstruction::UNKNOWN);
+        default:
+            return "NOINFO";
+    };
+    return "ERR";
+}

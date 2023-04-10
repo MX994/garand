@@ -165,6 +165,8 @@ namespace Garand {
         NOT,
         UNKNOWN,
     };
+
+    char const* get_ins_mnemonic(GarandInstruction ins);
 }
 
 #endif

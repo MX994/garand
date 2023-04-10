@@ -1,4 +1,8 @@
 #include "Memory.hpp"
+#include "Registers.hpp"
+#include "Instruction.hpp"
+#include "Instructions.hpp"
+#include "Processor.hpp"
 #include <SDL2pp/SDL2pp.hh>
 #include <algorithm>
 #include <exception>
@@ -138,19 +142,277 @@ void memoryDemoWindow() {
     ImGui::End();
 }
 
+void instructionDemoWindow() {
+    ImGui::Begin("Instruction");
+    static auto asm_input = std::vector<Garand::GarandInstruction>{};
+    if (asm_input.size() == 0) {
+        asm_input.push_back(Garand::GarandInstruction({
+            .ConditionFlags = 0b0001,
+            .Operation = 0b000100,
+            .InstructionSpecific = 0b00000100000100000010,
+        }));
+    }
+    static auto asm_input_idx = 0U;
+    static auto next_execution = 0U;
+    static Garand::Memory mem;
+    // ImGui::InputTextMultiline("Assembly", asm_input, asm_input_sz);
+    if (ImGui::BeginListBox("Assembly")) {
+        for (auto n = 0U; n < asm_input.size(); ++n) {
+            const bool is_selected = (asm_input_idx == n);
+            const bool is_next_execution = (next_execution == n);
+            const auto mne = get_ins_mnemonic(asm_input[n]);
+            if (ImGui::Selectable(fmt::format("##{0}", mne).c_str(), is_selected)) {
+                asm_input_idx = n;
+            }
+            ImGui::SameLine();
+            if (is_next_execution) {
+                ImGui::TextColored(ImVec4(0.533f, 0.929f, 1.0f, 1.0f), "%s", mne);
+            } else {
+                ImGui::Text("%s", mne);
+            }
+            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+            if (is_selected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndListBox();
+    }
+    constexpr auto value_step = 0;
+    static uint8_t cond = 0;
+    static uint8_t oper = 0;
+    static uint32_t insp = 0;
+    ImGui::Text("New instruction");
+    ImGui::InputScalar("CF", ImGuiDataType_U8, &cond, &value_step,
+                       &value_step, "%lX");
+    ImGui::InputScalar("OP", ImGuiDataType_U8, &oper, &value_step,
+                       &value_step, "%lX");
+    ImGui::InputScalar("IN", ImGuiDataType_U32, &insp, &value_step,
+                       &value_step, "%lX");
+    if (ImGui::Button("Add")) {
+        auto const inst = Garand::GarandInstruction {
+            .ConditionFlags = cond,
+            .Operation = oper,
+            .InstructionSpecific = insp,
+        };
+        asm_input.push_back(inst);
+    }
+
+    ImGui::Text("Current register");
+    static auto regs = Garand::Registers{};
+    if (ImGui::BeginTable("insdemo_reg_table", 2, 0, ImVec2{100.f, 40.f})) {
+        for (auto i = 0U; i < Garand::REGISTERS_GP_CNT; ++i) {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("R%u", i);
+            ImGui::TableNextColumn();
+            ImGui::Text("%llu", regs.GeneralPurpose[i]);
+        }
+        for (auto i = 0U; i < Garand::REGISTERS_IO_CNT; ++i) {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("I%u", i);
+            ImGui::TableNextColumn();
+            ImGui::Text("%llu", regs.IO[i]);
+        }
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("NZCV");
+        ImGui::TableNextColumn();
+        ImGui::Text("%d:%d:%d:%d", regs.Condition.Negative, regs.Condition.Zero, regs.Condition.Carry, regs.Condition.Overflow);
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("LR");
+        ImGui::TableNextColumn();
+        ImGui::Text("%llu", regs.LinkRegister);
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("SP");
+        ImGui::TableNextColumn();
+        ImGui::Text("%llu", regs.StackPointer);
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("PC");
+        ImGui::TableNextColumn();
+        ImGui::Text("%llu", regs.ProgramCounter);
+    
+        ImGui::EndTable();
+    }
+    if (next_execution < asm_input.size()) {
+        ImGui::Text("Next instruction: %s", Garand::get_ins_mnemonic(asm_input[next_execution]));
+    } else {
+        ImGui::Text("(End of Program)");
+    }
+    
+
+    if (ImGui::Button("Run")) {
+        while (next_execution < asm_input.size()) {
+            auto ins = asm_input[next_execution];
+            auto decode = Garand::Instruction::Decode(ins);
+            // Based on Serg change, regs must be uint64_t*
+            auto wb = Garand::Instruction::Execute(decode, ins, mem, (uint64_t*)&regs);
+            Garand::Instruction::WriteBack(wb);
+            ++next_execution;
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Step")) {
+        if (next_execution < asm_input.size()) {
+            auto ins = asm_input[next_execution];
+            auto decode = Garand::Instruction::Decode(ins);
+            // Based on Serg change, regs must be uint64_t*
+            auto wb = Garand::Instruction::Execute(decode, ins, mem, (uint64_t*)&regs);
+            Garand::Instruction::WriteBack(wb);
+            ++next_execution;
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Reset Register")) {
+        regs = Garand::Registers{};
+    }
+    if (ImGui::Button("Reset Cursor")) {
+        next_execution = 0;
+    }
+    ImGui::End();
+}
+
+void pipelineDemoWindow() {
+    ImGui::Begin("Pipeline");
+    static auto asm_input = std::vector<Garand::GarandInstruction>{};
+    static auto asm_input_idx = 0U;
+    static auto next_execution = 0U;
+    static Garand::Memory mem;
+    static Garand::Processor cpu{mem.get_raw() + 0x1000};
+    if (ImGui::BeginListBox("AssemblyPipeline")) {
+        for (auto n = 0U; n < asm_input.size(); ++n) {
+            const bool is_selected = (asm_input_idx == n);
+            const bool is_next_execution = (next_execution == n);
+            const auto mne = get_ins_mnemonic(asm_input[n]);
+            if (ImGui::Selectable(fmt::format("##{0}", mne).c_str(), is_selected)) {
+                asm_input_idx = n;
+            }
+            ImGui::SameLine();
+            if (is_next_execution) {
+                ImGui::TextColored(ImVec4(0.533f, 0.929f, 1.0f, 1.0f), "%s", mne);
+            } else {
+                ImGui::Text("%s", mne);
+            }
+            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+            if (is_selected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndListBox();
+    }
+    constexpr auto value_step = 0;
+    static uint8_t cond = 0;
+    static uint8_t oper = 0;
+    static uint32_t insp = 0;
+    ImGui::Text("New instruction");
+    ImGui::InputScalar("CF", ImGuiDataType_U8, &cond, &value_step,
+                       &value_step, "%lX");
+    ImGui::InputScalar("OP", ImGuiDataType_U8, &oper, &value_step,
+                       &value_step, "%lX");
+    ImGui::InputScalar("IN", ImGuiDataType_U32, &insp, &value_step,
+                       &value_step, "%lX");
+    if (ImGui::Button("Add")) {
+        auto const inst = Garand::GarandInstruction {
+            .ConditionFlags = cond,
+            .Operation = oper,
+            .InstructionSpecific = insp,
+        };
+        asm_input.push_back(inst);
+    }
+
+    ImGui::Text("Current register");
+    static auto regs = Garand::Registers{};
+    if (ImGui::BeginTable("pipdemo_reg_table", 2, 0, ImVec2{100.f, 40.f})) {
+        for (auto i = 0U; i < Garand::REGISTERS_GP_CNT; ++i) {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("R%u", i);
+            ImGui::TableNextColumn();
+            ImGui::Text("%llu", regs.GeneralPurpose[i]);
+        }
+        for (auto i = 0U; i < Garand::REGISTERS_IO_CNT; ++i) {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("I%u", i);
+            ImGui::TableNextColumn();
+            ImGui::Text("%llu", regs.IO[i]);
+        }
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("NZCV");
+        ImGui::TableNextColumn();
+        ImGui::Text("%d:%d:%d:%d", regs.Condition.Negative, regs.Condition.Zero, regs.Condition.Carry, regs.Condition.Overflow);
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("LR");
+        ImGui::TableNextColumn();
+        ImGui::Text("%llu", regs.LinkRegister);
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("SP");
+        ImGui::TableNextColumn();
+        ImGui::Text("%llu", regs.StackPointer);
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("PC");
+        ImGui::TableNextColumn();
+        ImGui::Text("%llu", regs.ProgramCounter);
+    
+        ImGui::EndTable();
+    }
+    if (next_execution < asm_input.size()) {
+        ImGui::Text("Next instruction: %s", Garand::get_ins_mnemonic(asm_input[next_execution]));
+    } else {
+        ImGui::Text("(End of Program)");
+    }
+    
+
+    if (ImGui::Button("Run")) {
+        // TODO
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Step")) {
+        if (next_execution < asm_input.size()) {
+            auto ins = asm_input[next_execution];
+            cpu.Queue(ins);
+            cpu.Step();
+            ++next_execution;
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Reset Register")) {
+        regs = Garand::Registers{};
+    }
+    if (ImGui::Button("Reset Cursor")) {
+        next_execution = 0;
+    }
+    ImGui::End();
+}
+
 void debuggui() {
     static bool show_demo_window = false;
     static bool show_memory_demo_window = false;
+    static bool show_instruction_demo_window = false;
+    static bool show_pipeline_demo_window = false;
     if (show_demo_window) {
         ImGui::ShowDemoWindow(&show_demo_window);
     }
     if (show_memory_demo_window) {
         memoryDemoWindow();
     }
+    if (show_instruction_demo_window) {
+        instructionDemoWindow();
+    }
+    if (show_pipeline_demo_window) {
+        pipelineDemoWindow();
+    }
     // Edit bools storing our window open/close state
     ImGui::Begin("Control UI");
     ImGui::Checkbox("Demo Window", &show_demo_window);
-    ImGui::Checkbox("Memory Demo Window", &show_memory_demo_window);
+    ImGui::Checkbox("Memory Demo", &show_memory_demo_window);
+    ImGui::Checkbox("Instruction Demo", &show_instruction_demo_window);
+    ImGui::Checkbox("Pipeline Demo", &show_pipeline_demo_window);
     ImGui::End();
 }
 
