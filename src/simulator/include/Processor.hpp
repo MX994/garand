@@ -35,7 +35,6 @@ namespace Garand {
     private:
       Memory WkRAM;
       Registers WkRegs;
-      uint8_t *Program;
       std::shared_ptr<InstructionWk> Pipeline[PIPELINE_STAGES];
       std::queue<InstructionWk> InstructionQueue;
       uint64_t Clock = 0;
@@ -47,7 +46,6 @@ namespace Garand {
       void Tick();
 
     public:
-      Processor(uint8_t *Program) : Program(Program) {};
       void Step();
       void Queue(GarandInstruction);
       decltype(Pipeline) &View();

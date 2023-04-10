@@ -289,7 +289,7 @@ void pipelineDemoWindow() {
     static auto asm_input_idx = 0U;
     static auto next_execution = 0U;
     static Garand::Memory mem;
-    static Garand::Processor cpu{mem.get_raw() + 0x1000};
+    static Garand::Processor cpu;
     if (ImGui::BeginListBox("AssemblyPipeline")) {
         for (auto n = 0U; n < asm_input.size(); ++n) {
             const bool is_selected = (asm_input_idx == n);
