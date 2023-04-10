@@ -142,6 +142,47 @@ void memoryDemoWindow() {
     ImGui::End();
 }
 
+void drawRegTable(const char* id, const Garand::Registers &regs) {
+    if (ImGui::BeginTable(id, 2, 0, ImVec2{100.f, 40.f})) {
+        for (auto i = 0U; i < Garand::REGISTERS_GP_CNT; ++i) {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("R%u", i);
+            ImGui::TableNextColumn();
+            ImGui::Text("%llu", regs.GeneralPurpose[i]);
+        }
+        for (auto i = 0U; i < Garand::REGISTERS_IO_CNT; ++i) {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("I%u", i);
+            ImGui::TableNextColumn();
+            ImGui::Text("%llu", regs.IO[i]);
+        }
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("NZCV");
+        ImGui::TableNextColumn();
+        ImGui::Text("%d:%d:%d:%d", regs.Condition.Negative, regs.Condition.Zero, regs.Condition.Carry, regs.Condition.Overflow);
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("LR");
+        ImGui::TableNextColumn();
+        ImGui::Text("%llu", regs.LinkRegister);
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("SP");
+        ImGui::TableNextColumn();
+        ImGui::Text("%llu", regs.StackPointer);
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("PC");
+        ImGui::TableNextColumn();
+        ImGui::Text("%llu", regs.ProgramCounter);
+    
+        ImGui::EndTable();
+    }
+}
+
 void instructionDemoWindow() {
     ImGui::Begin("Instruction");
     static auto asm_input = std::vector<Garand::GarandInstruction>{};
@@ -198,44 +239,7 @@ void instructionDemoWindow() {
 
     ImGui::Text("Current register");
     static auto regs = Garand::Registers{};
-    if (ImGui::BeginTable("insdemo_reg_table", 2, 0, ImVec2{100.f, 40.f})) {
-        for (auto i = 0U; i < Garand::REGISTERS_GP_CNT; ++i) {
-            ImGui::TableNextRow();
-            ImGui::TableNextColumn();
-            ImGui::Text("R%u", i);
-            ImGui::TableNextColumn();
-            ImGui::Text("%llu", regs.GeneralPurpose[i]);
-        }
-        for (auto i = 0U; i < Garand::REGISTERS_IO_CNT; ++i) {
-            ImGui::TableNextRow();
-            ImGui::TableNextColumn();
-            ImGui::Text("I%u", i);
-            ImGui::TableNextColumn();
-            ImGui::Text("%llu", regs.IO[i]);
-        }
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("NZCV");
-        ImGui::TableNextColumn();
-        ImGui::Text("%d:%d:%d:%d", regs.Condition.Negative, regs.Condition.Zero, regs.Condition.Carry, regs.Condition.Overflow);
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("LR");
-        ImGui::TableNextColumn();
-        ImGui::Text("%llu", regs.LinkRegister);
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("SP");
-        ImGui::TableNextColumn();
-        ImGui::Text("%llu", regs.StackPointer);
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("PC");
-        ImGui::TableNextColumn();
-        ImGui::Text("%llu", regs.ProgramCounter);
-    
-        ImGui::EndTable();
-    }
+    drawRegTable("insdemo_reg_table", regs);
     if (next_execution < asm_input.size()) {
         ImGui::Text("Next instruction: %s", Garand::get_ins_mnemonic(asm_input[next_execution]));
     } else {
@@ -270,6 +274,11 @@ void instructionDemoWindow() {
     }
     if (ImGui::Button("Reset Cursor")) {
         next_execution = 0;
+    }
+    if (ImGui::Button("Reset Scratchpad")) {
+        asm_input.clear();
+        next_execution = 0;
+        asm_input_idx = 0;
     }
     ImGui::End();
 }
@@ -322,49 +331,41 @@ void pipelineDemoWindow() {
     }
 
     ImGui::Text("Current register");
-    static auto regs = Garand::Registers{};
-    if (ImGui::BeginTable("pipdemo_reg_table", 2, 0, ImVec2{100.f, 40.f})) {
-        for (auto i = 0U; i < Garand::REGISTERS_GP_CNT; ++i) {
-            ImGui::TableNextRow();
-            ImGui::TableNextColumn();
-            ImGui::Text("R%u", i);
-            ImGui::TableNextColumn();
-            ImGui::Text("%llu", regs.GeneralPurpose[i]);
-        }
-        for (auto i = 0U; i < Garand::REGISTERS_IO_CNT; ++i) {
-            ImGui::TableNextRow();
-            ImGui::TableNextColumn();
-            ImGui::Text("I%u", i);
-            ImGui::TableNextColumn();
-            ImGui::Text("%llu", regs.IO[i]);
-        }
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("NZCV");
-        ImGui::TableNextColumn();
-        ImGui::Text("%d:%d:%d:%d", regs.Condition.Negative, regs.Condition.Zero, regs.Condition.Carry, regs.Condition.Overflow);
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("LR");
-        ImGui::TableNextColumn();
-        ImGui::Text("%llu", regs.LinkRegister);
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("SP");
-        ImGui::TableNextColumn();
-        ImGui::Text("%llu", regs.StackPointer);
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("PC");
-        ImGui::TableNextColumn();
-        ImGui::Text("%llu", regs.ProgramCounter);
-    
-        ImGui::EndTable();
-    }
+    auto &regs = cpu.Regs();
+    drawRegTable("pipdemo_reg_table", regs);
     if (next_execution < asm_input.size()) {
-        ImGui::Text("Next instruction: %s", Garand::get_ins_mnemonic(asm_input[next_execution]));
+        ImGui::Text("Next instruction added to queue: %s", Garand::get_ins_mnemonic(asm_input[next_execution]));
     } else {
         ImGui::Text("(End of Program)");
+    }
+    ImGui::Text("Clock: %llu cycle(s)", cpu.ReadClock());
+    ImGui::Text("Fetch:");
+    ImGui::SameLine();
+    if (cpu.View()[0]) {
+        ImGui::Text("%s", Garand::get_ins_mnemonic(cpu.View()[0]->Instruction));
+    } else {
+        ImGui::Text("(Empty)");
+    }
+    ImGui::Text("Decode:");
+    ImGui::SameLine();
+    if (cpu.View()[1]) {
+        ImGui::Text("%s", Garand::get_ins_mnemonic(cpu.View()[1]->Instruction));
+    } else {
+        ImGui::Text("(Empty)");
+    }
+    ImGui::Text("Execute:");
+    ImGui::SameLine();
+    if (cpu.View()[2]) {
+        ImGui::Text("%s", Garand::get_ins_mnemonic(cpu.View()[2]->Instruction));
+    } else {
+        ImGui::Text("(Empty)");
+    }
+    ImGui::Text("Writeback:");
+    ImGui::SameLine();
+    if (cpu.View()[3]) {
+        ImGui::Text("%s", Garand::get_ins_mnemonic(cpu.View()[3]->Instruction));
+    } else {
+        ImGui::Text("(Empty)");
     }
     
 
@@ -376,16 +377,21 @@ void pipelineDemoWindow() {
         if (next_execution < asm_input.size()) {
             auto ins = asm_input[next_execution];
             cpu.Queue(ins);
-            cpu.Step();
             ++next_execution;
         }
+        cpu.Step();
     }
     ImGui::SameLine();
     if (ImGui::Button("Reset Register")) {
-        regs = Garand::Registers{};
+        cpu.ResetRegs();
     }
     if (ImGui::Button("Reset Cursor")) {
         next_execution = 0;
+    }
+    if (ImGui::Button("Reset Scratchpad")) {
+        asm_input.clear();
+        next_execution = 0;
+        asm_input_idx = 0;
     }
     ImGui::End();
 }

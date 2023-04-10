@@ -3,6 +3,7 @@
 #include "Registers.hpp"
 #include <queue>
 #include <memory>
+#include <array>
 
 #ifndef GARAND_PROCESSOR_HPP
 #define GARAND_PROCESSOR_HPP
@@ -35,7 +36,7 @@ namespace Garand {
       Memory WkRAM;
       Registers WkRegs;
       uint8_t *Program;
-      std::unique_ptr<InstructionWk> Pipeline[PIPELINE_STAGES];
+      std::shared_ptr<InstructionWk> Pipeline[PIPELINE_STAGES];
       std::queue<InstructionWk> InstructionQueue;
       uint64_t Clock = 0;
 
@@ -49,6 +50,10 @@ namespace Garand {
       Processor(uint8_t *Program) : Program(Program) {};
       void Step();
       void Queue(GarandInstruction);
+      decltype(Pipeline) &View();
+      decltype(WkRegs) const &Regs();
+      void ResetRegs();
+      decltype(Clock) ReadClock();
   };
 } // namespace Garand
 
