@@ -92,7 +92,7 @@ auto Reg2Imm1(uint64_t raw) {
     auto parameter = raw & 0x3fffff;
     Reg dest = (parameter >> 14) & 0x3f;
     Reg par1 = (parameter >> 8) & 0x3f;
-    Imm imm = (parameter)&0xff;
+    Imm imm = parameter & 0xff;
     return std::make_tuple(dest, par1, imm);
 }
 
@@ -105,6 +105,20 @@ auto Reg1(uint64_t raw) {
     auto parameter = raw & 0x3fffff;
     Reg dest = (parameter >> 14) & 0x3f;
     return std::make_tuple(dest);
+}
+
+auto Reg2(uint64_t raw) {
+    auto parameter = raw & 0x3fffff;
+    Reg par1 = (parameter >> 14) & 0x3f;
+    Reg par2 = (parameter >> 8) & 0x3f;
+    return std::make_tuple(par1, par2);
+}
+
+auto Reg1Imm1(uint64_t raw) {
+    auto parameter = raw & 0x3fffff;
+    Reg par1 = (parameter >> 14) & 0x3f;
+    Imm imm = parameter & 0x3fff;
+    return std::make_tuple(par1, imm);
 }
 
 namespace Garand {
@@ -163,6 +177,7 @@ std::string disassemble(GarandInstruction ins) {
     case BRUHCC_VS:
     case BRUHCC_PL:
     case BRUHCC_NG:
+    case UNBIND:
         return std::apply(
             [&](auto &&...args) {
                 return format("{} {}", get_ins_mnemonic(ins), args...);
@@ -188,10 +203,21 @@ std::string disassemble(GarandInstruction ins) {
                 return format("{} {}", get_ins_mnemonic(ins), args...);
             },
             Imm1(raw));
-    case BIND:
-    case UNBIND:
+    case NOT:
     case CMP:
+    case TEST:
+        return std::apply(
+            [&](auto &&...args) {
+                return format("{} {}, {}", get_ins_mnemonic(ins), args...);
+            },
+            Reg2(raw));
+    case BIND:
     case CMPI:
+        return std::apply(
+            [&](auto &&...args) {
+                return format("{} {}, {}", get_ins_mnemonic(ins), args...);
+            },
+            Reg1Imm1(raw));
     case FX_ADD:
     case FX_ADDI:
     case FX_SUB:
@@ -201,8 +227,6 @@ std::string disassemble(GarandInstruction ins) {
     case FX_MADD:
     case FX_DIV:
     case FX_DIVI:
-    case TEST:
-    case NOT:
     default:
         return format("<Unimplemented>");
     }
