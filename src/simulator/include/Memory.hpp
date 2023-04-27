@@ -27,9 +27,6 @@ struct CacheBlock {
   uint8_t Data[CACHE_BLOCK_SIZE];
 };
 
-// Todo: Move this into scope and clear cache
-inline CacheBlock Blocks[CACHE_BLOCK_COUNT];
-
 class Memory {
   private:
     // Placeholders for now
@@ -42,7 +39,9 @@ class Memory {
   public:
     Memory(AddressSize sz = 0x100000): size(sz) {
         this->memory_region = std::vector<uint8_t>(sz, 0);
+        this->Blocks.resize(CACHE_BLOCK_COUNT);
     };
+    std::vector<CacheBlock> Blocks;
     // These two are placeholders for now
     LoadSize *load(AddressSize address);
     CacheBlock *CacheCheckHitMiss(CacheAddress Addr);

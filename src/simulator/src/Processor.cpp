@@ -127,4 +127,6 @@ void Processor::ResetRegs() { WkRegs = Garand::Registers{}; }
 
 decltype(Processor::Clock) Processor::ReadClock() { return Clock; }
 
+Memory &Processor::ReadMem() { return WkRAM; }
+
 } // namespace Garand

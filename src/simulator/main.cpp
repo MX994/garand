@@ -63,17 +63,13 @@ class MemoryPerf {
     size_t length() { return latency_history.size(); }
 };
 
-void cacheMemWindow() {
+void cacheMemWindow(Garand::Memory &mem) {
     ImGui::Begin("Cache view");
     static int block_id = 0;
     ImGui::InputInt("Block", &block_id);
 
-    // This is the cache view earlier
-    // For some reason, Garand::Blocks address here is different from
-    // Garand::Blocks used in Memory.cpp
-
     static ImGui::MemoryEditor mem_edit;
-    auto *block = &Garand::Blocks[block_id];
+    auto *block = &mem.Blocks[block_id];
 
     // fmt::print("Cache block {} read\n", block_id);
     ImGui::Text("Tag: %d", block->Tag);
@@ -115,7 +111,7 @@ void memoryDemoWindow() {
     ImGui::Checkbox("Cache Window", &cache_view);
 
     if (cache_view) {
-        cacheMemWindow();
+        cacheMemWindow(memory);
     }
 
     static Garand::AddressSize address = 0;
@@ -333,7 +329,7 @@ void pipelineDemoWindow() {
         asm_input.push_back(inst);
     }
 
-    cacheMemWindow();
+    cacheMemWindow(mem);
     auto &memory = cpu.ReadMem();
     ImGui::Begin("Memory View");
     static ImGui::MemoryEditor mem_edit;

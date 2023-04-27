@@ -3,7 +3,7 @@
 
 namespace Garand {
     CacheBlock *Memory::CacheCheckHitMiss(CacheAddress Addr) {
-        CacheBlock *Block = &Garand::Blocks[Addr.Index];
+        CacheBlock *Block = &Blocks[Addr.Index];
         auto id = Addr.Index;
         // fmt::print("Cache block {} used\n", id);
         if (!Memory::IsBlockInCache(Addr, Block)) {
