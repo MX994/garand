@@ -99,7 +99,7 @@ void Processor::ExecuteMemload() {
         };
 
         Pipeline[Stage::EXECUTE]->CycleMax[Stage::EXECUTE] =
-            WkRAM.IsBlockInCache(Addr, &Garand::Blocks[Addr.Index])
+            WkRAM.IsBlockInCache(Addr, &WkRAM.Blocks[Addr.Index])
                 ? CACHE_HIT_CYCLES
                 : CACHE_MISS_CYCLES;
     }
