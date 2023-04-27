@@ -3,6 +3,7 @@
 #include "Instruction.hpp"
 #include "Instructions.hpp"
 #include "Processor.hpp"
+#include "Disassemble.hpp"
 #include <SDL2pp/SDL2pp.hh>
 #include <algorithm>
 #include <exception>
@@ -143,7 +144,7 @@ void memoryDemoWindow() {
 }
 
 void drawRegTable(const char* id, const Garand::Registers &regs) {
-    if (ImGui::BeginTable(id, 2, 0, ImVec2{100.f, 40.f})) {
+    if (ImGui::BeginTable(id, 2, 0)) {
         for (auto i = 0U; i < Garand::REGISTERS_GP_CNT; ++i) {
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
@@ -201,15 +202,15 @@ void instructionDemoWindow() {
         for (auto n = 0U; n < asm_input.size(); ++n) {
             const bool is_selected = (asm_input_idx == n);
             const bool is_next_execution = (next_execution == n);
-            const auto mne = get_ins_mnemonic(asm_input[n]);
+            const auto mne = Garand::disassemble(asm_input[n]);
             if (ImGui::Selectable(fmt::format("##{0}", mne).c_str(), is_selected)) {
                 asm_input_idx = n;
             }
             ImGui::SameLine();
             if (is_next_execution) {
-                ImGui::TextColored(ImVec4(0.533f, 0.929f, 1.0f, 1.0f), "%s", mne);
+                ImGui::TextColored(ImVec4(0.533f, 0.929f, 1.0f, 1.0f), "%s", mne.c_str());
             } else {
-                ImGui::Text("%s", mne);
+                ImGui::Text("%s", mne.c_str());
             }
             // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
             if (is_selected)
@@ -239,7 +240,9 @@ void instructionDemoWindow() {
 
     ImGui::Text("Current register");
     static auto regs = Garand::Registers{};
+    ImGui::Begin("Register Table");
     drawRegTable("insdemo_reg_table", regs);
+    ImGui::End();
     if (next_execution < asm_input.size()) {
         ImGui::Text("Next instruction: %s", Garand::get_ins_mnemonic(asm_input[next_execution]));
     } else {
@@ -294,15 +297,15 @@ void pipelineDemoWindow() {
         for (auto n = 0U; n < asm_input.size(); ++n) {
             const bool is_selected = (asm_input_idx == n);
             const bool is_next_execution = (next_execution == n);
-            const auto mne = get_ins_mnemonic(asm_input[n]);
+            const auto mne = Garand::disassemble(asm_input[n]);
             if (ImGui::Selectable(fmt::format("##{0}", mne).c_str(), is_selected)) {
                 asm_input_idx = n;
             }
             ImGui::SameLine();
             if (is_next_execution) {
-                ImGui::TextColored(ImVec4(0.533f, 0.929f, 1.0f, 1.0f), "%s", mne);
+                ImGui::TextColored(ImVec4(0.533f, 0.929f, 1.0f, 1.0f), "%s", mne.c_str());
             } else {
-                ImGui::Text("%s", mne);
+                ImGui::Text("%s", mne.c_str());
             }
             // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
             if (is_selected)
@@ -330,9 +333,17 @@ void pipelineDemoWindow() {
         asm_input.push_back(inst);
     }
 
-    ImGui::Text("Current register");
+    cacheMemWindow();
+    auto &memory = cpu.ReadMem();
+    ImGui::Begin("Memory View");
+    static ImGui::MemoryEditor mem_edit;
+    mem_edit.DrawContents(memory.get_raw(), memory.get_size());
+    ImGui::End();
+
     auto &regs = cpu.Regs();
+    ImGui::Begin("Register Table");
     drawRegTable("pipdemo_reg_table", regs);
+    ImGui::End();
     if (next_execution < asm_input.size()) {
         ImGui::Text("Next instruction added to queue: %s", Garand::get_ins_mnemonic(asm_input[next_execution]));
     } else {
