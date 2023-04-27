@@ -1,9 +1,9 @@
-#include "Memory.hpp"
-#include "Registers.hpp"
+#include "Disassemble.hpp"
 #include "Instruction.hpp"
 #include "Instructions.hpp"
+#include "Memory.hpp"
 #include "Processor.hpp"
-#include "Disassemble.hpp"
+#include "Registers.hpp"
 #include <SDL2pp/SDL2pp.hh>
 #include <algorithm>
 #include <exception>
@@ -139,7 +139,7 @@ void memoryDemoWindow() {
     ImGui::End();
 }
 
-void drawRegTable(const char* id, const Garand::Registers &regs) {
+void drawRegTable(const char *id, const Garand::Registers &regs) {
     if (ImGui::BeginTable(id, 2, 0)) {
         for (auto i = 0U; i < Garand::REGISTERS_GP_CNT; ++i) {
             ImGui::TableNextRow();
@@ -159,7 +159,8 @@ void drawRegTable(const char* id, const Garand::Registers &regs) {
         ImGui::TableNextColumn();
         ImGui::Text("NZCV");
         ImGui::TableNextColumn();
-        ImGui::Text("%d:%d:%d:%d", regs.Condition.Negative, regs.Condition.Zero, regs.Condition.Carry, regs.Condition.Overflow);
+        ImGui::Text("%d:%d:%d:%d", regs.Condition.Negative, regs.Condition.Zero,
+                    regs.Condition.Carry, regs.Condition.Overflow);
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
         ImGui::Text("LR");
@@ -175,109 +176,56 @@ void drawRegTable(const char* id, const Garand::Registers &regs) {
         ImGui::Text("PC");
         ImGui::TableNextColumn();
         ImGui::Text("%llu", regs.ProgramCounter);
-    
+
         ImGui::EndTable();
     }
 }
 
 void instructionDemoWindow() {
     ImGui::Begin("Instruction");
-    static auto asm_input = std::vector<Garand::GarandInstruction>{};
-    if (asm_input.size() == 0) {
-        asm_input.push_back(Garand::GarandInstruction({
-            .ConditionFlags = 0b0001,
-            .Operation = 0b000100,
-            .InstructionSpecific = 0b00000100000100000010,
-        }));
-    }
-    static auto asm_input_idx = 0U;
-    static auto next_execution = 0U;
+    static auto asmline = Garand::GarandInstruction{
+        .ConditionFlags = 0b0001,
+        .Operation = 0b000100,
+        .InstructionSpecific = 0b00000100000100000010,
+    };
     static Garand::Memory mem;
-    // ImGui::InputTextMultiline("Assembly", asm_input, asm_input_sz);
-    if (ImGui::BeginListBox("Assembly")) {
-        for (auto n = 0U; n < asm_input.size(); ++n) {
-            const bool is_selected = (asm_input_idx == n);
-            const bool is_next_execution = (next_execution == n);
-            const auto mne = Garand::disassemble(asm_input[n]);
-            if (ImGui::Selectable(fmt::format("##{0}", mne).c_str(), is_selected)) {
-                asm_input_idx = n;
-            }
-            ImGui::SameLine();
-            if (is_next_execution) {
-                ImGui::TextColored(ImVec4(0.533f, 0.929f, 1.0f, 1.0f), "%s", mne.c_str());
-            } else {
-                ImGui::Text("%s", mne.c_str());
-            }
-            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-            if (is_selected)
-                ImGui::SetItemDefaultFocus();
-        }
-        ImGui::EndListBox();
+
+    const auto mne = Garand::disassemble(asmline);
+    ImGui::Text("Assembly: %s", mne.c_str());
+    constexpr auto value_step = 1;
+    static uint8_t cond = asmline.ConditionFlags;
+    static uint8_t oper = asmline.Operation;
+    static uint32_t insp = asmline.InstructionSpecific;
+    ImGui::Text("Modifying instruction");
+    if (ImGui::InputScalar("CF", ImGuiDataType_U8, &cond, &value_step,
+                           &value_step, "%lX")) {
+        asmline.ConditionFlags = cond;
     }
-    constexpr auto value_step = 0;
-    static uint8_t cond = 0;
-    static uint8_t oper = 0;
-    static uint32_t insp = 0;
-    ImGui::Text("New instruction");
-    ImGui::InputScalar("CF", ImGuiDataType_U8, &cond, &value_step,
-                       &value_step, "%lX");
-    ImGui::InputScalar("OP", ImGuiDataType_U8, &oper, &value_step,
-                       &value_step, "%lX");
-    ImGui::InputScalar("IN", ImGuiDataType_U32, &insp, &value_step,
-                       &value_step, "%lX");
-    if (ImGui::Button("Add")) {
-        auto const inst = Garand::GarandInstruction {
-            .ConditionFlags = cond,
-            .Operation = oper,
-            .InstructionSpecific = insp,
-        };
-        asm_input.push_back(inst);
+    if (ImGui::InputScalar("OP", ImGuiDataType_U8, &oper, &value_step,
+                           &value_step, "%lX")) {
+        asmline.Operation = oper;
+    }
+    if (ImGui::InputScalar("IN", ImGuiDataType_U32, &insp, &value_step,
+                           &value_step, "%lX")) {
+        asmline.InstructionSpecific = insp;
     }
 
-    ImGui::Text("Current register");
     static auto regs = Garand::Registers{};
     ImGui::Begin("Register Table");
     drawRegTable("insdemo_reg_table", regs);
     ImGui::End();
-    if (next_execution < asm_input.size()) {
-        ImGui::Text("Next instruction: %s", Garand::get_ins_mnemonic(asm_input[next_execution]));
-    } else {
-        ImGui::Text("(End of Program)");
-    }
-    
 
     if (ImGui::Button("Run")) {
-        while (next_execution < asm_input.size()) {
-            auto ins = asm_input[next_execution];
-            auto decode = Garand::Instruction::Decode(ins);
-            // Based on Serg change, regs must be uint64_t*
-            auto wb = Garand::Instruction::Execute(decode, ins, mem, (uint64_t*)&regs);
-            Garand::Instruction::WriteBack(wb);
-            ++next_execution;
-        }
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Step")) {
-        if (next_execution < asm_input.size()) {
-            auto ins = asm_input[next_execution];
-            auto decode = Garand::Instruction::Decode(ins);
-            // Based on Serg change, regs must be uint64_t*
-            auto wb = Garand::Instruction::Execute(decode, ins, mem, (uint64_t*)&regs);
-            Garand::Instruction::WriteBack(wb);
-            ++next_execution;
-        }
+        auto &ins = asmline;
+        auto decode = Garand::Instruction::Decode(ins);
+        // Based on Serg change, regs must be uint64_t*
+        auto wb =
+            Garand::Instruction::Execute(decode, ins, mem, (uint64_t *)&regs);
+        Garand::Instruction::WriteBack(wb);
     }
     ImGui::SameLine();
     if (ImGui::Button("Reset Register")) {
         regs = Garand::Registers{};
-    }
-    if (ImGui::Button("Reset Cursor")) {
-        next_execution = 0;
-    }
-    if (ImGui::Button("Reset Scratchpad")) {
-        asm_input.clear();
-        next_execution = 0;
-        asm_input_idx = 0;
     }
     ImGui::End();
 }
@@ -294,16 +242,19 @@ void pipelineDemoWindow() {
             const bool is_selected = (asm_input_idx == n);
             const bool is_next_execution = (next_execution == n);
             const auto mne = Garand::disassemble(asm_input[n]);
-            if (ImGui::Selectable(fmt::format("##{0}", mne).c_str(), is_selected)) {
+            if (ImGui::Selectable(fmt::format("##{0}", mne).c_str(),
+                                  is_selected)) {
                 asm_input_idx = n;
             }
             ImGui::SameLine();
             if (is_next_execution) {
-                ImGui::TextColored(ImVec4(0.533f, 0.929f, 1.0f, 1.0f), "%s", mne.c_str());
+                ImGui::TextColored(ImVec4(0.533f, 0.929f, 1.0f, 1.0f), "%s",
+                                   mne.c_str());
             } else {
                 ImGui::Text("%s", mne.c_str());
             }
-            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+            // Set the initial focus when opening the combo (scrolling +
+            // keyboard navigation focus)
             if (is_selected)
                 ImGui::SetItemDefaultFocus();
         }
@@ -314,14 +265,14 @@ void pipelineDemoWindow() {
     static uint8_t oper = 0;
     static uint32_t insp = 0;
     ImGui::Text("New instruction");
-    ImGui::InputScalar("CF", ImGuiDataType_U8, &cond, &value_step,
-                       &value_step, "%lX");
-    ImGui::InputScalar("OP", ImGuiDataType_U8, &oper, &value_step,
-                       &value_step, "%lX");
-    ImGui::InputScalar("IN", ImGuiDataType_U32, &insp, &value_step,
-                       &value_step, "%lX");
+    ImGui::InputScalar("CF", ImGuiDataType_U8, &cond, &value_step, &value_step,
+                       "%lX");
+    ImGui::InputScalar("OP", ImGuiDataType_U8, &oper, &value_step, &value_step,
+                       "%lX");
+    ImGui::InputScalar("IN", ImGuiDataType_U32, &insp, &value_step, &value_step,
+                       "%lX");
     if (ImGui::Button("Add")) {
-        auto const inst = Garand::GarandInstruction {
+        auto const inst = Garand::GarandInstruction{
             .ConditionFlags = cond,
             .Operation = oper,
             .InstructionSpecific = insp,
@@ -341,7 +292,8 @@ void pipelineDemoWindow() {
     drawRegTable("pipdemo_reg_table", regs);
     ImGui::End();
     if (next_execution < asm_input.size()) {
-        ImGui::Text("Next instruction added to queue: %s", Garand::get_ins_mnemonic(asm_input[next_execution]));
+        ImGui::Text("Next instruction added to queue: %s",
+                    Garand::get_ins_mnemonic(asm_input[next_execution]));
     } else {
         ImGui::Text("(End of Program)");
     }
@@ -374,7 +326,6 @@ void pipelineDemoWindow() {
     } else {
         ImGui::Text("(Empty)");
     }
-    
 
     if (ImGui::Button("Run")) {
         // TODO
