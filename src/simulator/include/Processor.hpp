@@ -48,6 +48,7 @@ namespace Garand {
       decltype(WkRegs) const &Regs();
       void ResetRegs();
       decltype(Clock) ReadClock();
+      Memory& ReadMem();
   };
 } // namespace Garand
 
