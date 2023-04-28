@@ -68,13 +68,13 @@ void Processor::Fetch() {
 
 void Processor::Decode() {
     if (Pipeline[Stage::DECODE]) {
-        Pipeline[Stage::DECODE]->DecodedInstruction =
+        Pipeline[Stage::DECODE]->decodedInstruction =
             Instruction::Decode(Pipeline[Stage::DECODE]->Instruction);
     }
 }
 
 void Processor::ExecuteMemload() {
-    auto ins = Pipeline[Stage::EXECUTE]->DecodedInstruction;
+    auto ins = Pipeline[Stage::EXECUTE]->decodedInstruction;
     if ((ins == Garand::DecodedInstruction::MREAD ||
          ins == Garand::DecodedInstruction::MWRITE) &&
         Pipeline[Stage::EXECUTE]->CycleMax[Stage::EXECUTE] == 0) {
@@ -108,14 +108,14 @@ void Processor::ExecuteMemload() {
 void Processor::Execute() {
     if (Pipeline[Stage::EXECUTE]) {
         Pipeline[Stage::EXECUTE]->WriteBack = Instruction::Execute(
-            Pipeline[Stage::EXECUTE]->DecodedInstruction,
+            Pipeline[Stage::EXECUTE]->decodedInstruction,
             Pipeline[Stage::EXECUTE]->Instruction, WkRAM, (uint64_t *)&WkRegs);
     }
 }
 
 void Processor::WriteBack() {
     if (Pipeline[Stage::WRITE_BACK]) {
-        Garand::Instruction::WriteBack(Pipeline[Stage::WRITE_BACK]->WriteBack);
+        Garand::Instruction::WriteBack(Pipeline[Stage::WRITE_BACK]->WriteBack, WkRAM);
     }
 }
 

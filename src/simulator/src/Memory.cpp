@@ -28,7 +28,7 @@ namespace Garand {
             .Offset = address & 0xFFFF,
         };
         CacheBlock *Block = CacheCheckHitMiss(Addr);
-        return (LoadSize *)(Block->Data);
+        return (LoadSize *)(Block->Data + Addr.Offset);
     }
 
     void Memory::store(AddressSize address, LoadSize value) {
