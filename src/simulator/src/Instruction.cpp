@@ -76,7 +76,7 @@ Garand::DecodedInstruction Garand::Instruction::Decode(Garand::GarandInstruction
                 // EQ
                 case 0xD:
                     return BRUHCC_PL;
-                // NE
+                // NG
                 case 0xE:
                     return BRUHCC_NG;
                 default:
@@ -129,7 +129,7 @@ Garand::DecodedInstruction Garand::Instruction::Decode(Garand::GarandInstruction
                 // EQ
                 case 0xD:
                     return BCC_PL;
-                // NE
+                // NG
                 case 0xE:
                     return BCC_NG;
                 default:
@@ -479,7 +479,6 @@ Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruc
 }
 
 void Garand::Instruction::WriteBack(Garand::InstructionWriteBack write_back, Garand::Memory &mem) {
-    // TODO: Implement WriteBack
     std::cout << "Write: " << write_back.is_reg << " " << *write_back.reg << " " << write_back.value << std::endl;
     if (write_back.is_reg)
         *(write_back.reg) = write_back.value;
