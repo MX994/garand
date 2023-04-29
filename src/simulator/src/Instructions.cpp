@@ -656,7 +656,12 @@ void set_cflags(uint64_t* regs, uint32_t val, uint32_t val_2, uint32_t val_1) {
         reg_struct->Condition.Carry = 0;
     }
 
-    // TODO: Implement V flag (overflow) - not sure how
+    int twos_comp = ~val_1 + 1;
+    if (val_1 + val_2 == 0) {
+        reg_struct->Condition.Overflow = 0;
+    } else {
+        reg_struct->Condition.Overflow = 1;
+    }
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::Compare(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
