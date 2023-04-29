@@ -14,6 +14,8 @@ namespace Garand {
     };
 
     struct InstructionWriteBack {
+        // If true, writeback. Else do nothing
+        bool write_back = true;
         // If true, writeback to register. Else writeback to memory
         bool is_reg = true;
         uint64_t value;

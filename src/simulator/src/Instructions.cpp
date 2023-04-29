@@ -340,15 +340,61 @@ Garand::InstructionWriteBack Garand::InstructionSet::SubtractImmediate(Garand::G
     return wb;
 }
 
+void set_cflags(uint64_t* regs, uint32_t val, uint32_t val_2, uint32_t val_1) {
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (val == 0) {
+        reg_struct->Condition.Zero = 1;
+    } else {
+        reg_struct->Condition.Zero = 0;
+    }
+
+    if (val < 0) {
+        reg_struct->Condition.Negative = 1;
+    } else {
+        reg_struct->Condition.Negative = 0;
+    }
+
+    if (val_2 > val_1) {
+        reg_struct->Condition.Carry = 1;
+    } else {
+        reg_struct->Condition.Carry = 0;
+    }
+
+    // TODO: Implement V flag (overflow) - not sure how
+}
+
 Garand::InstructionWriteBack Garand::InstructionSet::Compare(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+    wb.write_back = false;
+
+    int r1 = (instr.InstructionSpecific >> 14) & 0b111111;
+    int r2 = (instr.InstructionSpecific >> 8) & 0b111111;
+
+    uint32_t r1_val = *(Garand::load_reg(regs, r1));
+    uint32_t r2_val = *(Garand::load_reg(regs, r2));
+
+    uint32_t val = r2_val - r1_val;
+
+    set_cflags(regs, val, r2_val, r1_val);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::CompareImmediate(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+    wb.write_back = false;
+
+    int r1 = (instr.InstructionSpecific >> 14) & 0b111111;
+    int imm = (instr.InstructionSpecific >> 2) & 0b111111111111;
+
+    uint32_t r1_val = *(Garand::load_reg(regs, r1));
+    uint32_t imm_val = *(Garand::load_reg(regs, imm));
+
+    uint32_t val = imm_val - r1_val;
+
+    set_cflags(regs, val, imm_val, r1_val);
+
     return wb;
 }
 
@@ -365,7 +411,6 @@ Garand::InstructionWriteBack Garand::InstructionSet::FX_SubtractImmediate(Garand
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::Multiply(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
 
     int dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -518,8 +563,19 @@ Garand::InstructionWriteBack Garand::InstructionSet::ANDImmediate(Garand::Garand
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::Test(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+    wb.write_back = false;
+
+    int r1 = (instr.InstructionSpecific >> 14) & 0b111111;
+    int r2 = (instr.InstructionSpecific >> 8) & 0b111111;
+
+    uint32_t r1_val = *(Garand::load_reg(regs, r1));
+    uint32_t r2_val = *(Garand::load_reg(regs, r2));
+
+    uint32_t val = r2_val & r1_val;
+
+    set_cflags(regs, val, r2_val, r1_val);
+
     return wb;
 }
 

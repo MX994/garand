@@ -479,11 +479,12 @@ Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruc
 }
 
 void Garand::Instruction::WriteBack(Garand::InstructionWriteBack write_back, Garand::Memory &mem) {
-    std::cout << "Write: " << write_back.is_reg << " " << *write_back.reg << " " << write_back.value << std::endl;
-    if (write_back.is_reg)
-        *(write_back.reg) = write_back.value;
-    else {
-        std::cout << "MWRITE"  << std::endl;
-        mem.store((uint32_t) *write_back.reg, write_back.value);
+    if (write_back.write_back) {
+        if (write_back.is_reg)
+            *(write_back.reg) = write_back.value;
+        else {
+            std::cout << "MWRITE"  << std::endl;
+            mem.store((uint32_t) *write_back.reg, write_back.value);
+        }
     }
 }
