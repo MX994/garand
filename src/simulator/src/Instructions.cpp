@@ -78,183 +78,425 @@ Garand::InstructionWriteBack Garand::InstructionSet::Unbind(Garand::GarandInstru
     return wb;
 }
 
+void do_jump(Garand::Registers* regs, uint32_t dest) {
+    regs->ProgramCounter = dest;
+}
+
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_AL(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    do_jump(reg_struct, reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_EQ(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Zero == 1)
+        do_jump(reg_struct, reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_NE(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Zero == 0)
+        do_jump(reg_struct, reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_LO(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Carry == 0)
+        do_jump(reg_struct, reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_HS(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Carry == 1)
+        do_jump(reg_struct, reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_LT(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Negative != reg_struct->Condition.Overflow)
+        do_jump(reg_struct, reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_GE(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Negative == reg_struct->Condition.Overflow)
+        do_jump(reg_struct, reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_HI(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero == 0)
+        do_jump(reg_struct, reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_LS(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (!(reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero))
+        do_jump(reg_struct, reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_GT(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Zero == 0 && reg_struct->Condition.Negative == reg_struct->Condition.Overflow)
+        do_jump(reg_struct, reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_LE(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (!(reg_struct->Condition.Zero == 0 && reg_struct->Condition.Negative == reg_struct->Condition.Overflow))
+        do_jump(reg_struct, reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_VC(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Overflow == 0)
+        do_jump(reg_struct, reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_VS(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Overflow == 1)
+        do_jump(reg_struct, reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_PL(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Negative == 0)
+        do_jump(reg_struct, reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_NG(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Negative == 1)
+        do_jump(reg_struct, reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BCC_AL(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BCC_EQ(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Zero == 1)
+        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BCC_NE(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Zero == 0)
+        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BCC_LO(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Carry == 0)
+        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BCC_HS(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Carry == 1)
+        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BCC_LT(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Negative != reg_struct->Condition.Overflow)
+        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BCC_GE(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Negative == reg_struct->Condition.Overflow)
+        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BCC_HI(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero == 0)
+        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BCC_LS(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (!(reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero))
+        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BCC_GT(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Zero == 0 && reg_struct->Condition.Negative == reg_struct->Condition.Overflow)
+        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BCC_LE(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (!(reg_struct->Condition.Zero == 0 && reg_struct->Condition.Negative == reg_struct->Condition.Overflow))
+        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BCC_VC(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Overflow == 0)
+        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BCC_VS(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Overflow == 1)
+        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BCC_PL(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Negative == 0)
+        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::BCC_NG(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
+    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+
+    Garand::Registers* reg_struct = (Garand::Registers*) regs;
+
+    if (reg_struct->Condition.Negative == 1)
+        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+
     return wb;
 }
 
