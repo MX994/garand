@@ -78,10 +78,6 @@ Garand::InstructionWriteBack Garand::InstructionSet::Unbind(Garand::GarandInstru
     return wb;
 }
 
-void do_jump(Garand::Registers* regs, uint32_t dest) {
-    regs->ProgramCounter = dest;
-}
-
 Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_AL(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
     Garand::InstructionWriteBack wb;
 
@@ -90,7 +86,8 @@ Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_AL(Garand::GarandIns
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    do_jump(reg_struct, reg_dest);
+    wb.reg = &reg_struct->ProgramCounter;
+    wb.value = reg_dest;
 
     return wb;
 }
@@ -103,9 +100,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_EQ(Garand::GarandIns
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Zero == 1)
-        do_jump(reg_struct, reg_dest);
-
+    if (reg_struct->Condition.Zero == 1) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_dest;
+    }
     return wb;
 }
 
@@ -117,8 +115,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_NE(Garand::GarandIns
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Zero == 0)
-        do_jump(reg_struct, reg_dest);
+    if (reg_struct->Condition.Zero == 0) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_dest;
+    }
 
     return wb;
 }
@@ -131,8 +131,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_LO(Garand::GarandIns
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Carry == 0)
-        do_jump(reg_struct, reg_dest);
+    if (reg_struct->Condition.Carry == 0) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_dest;
+    }
 
     return wb;
 }
@@ -145,8 +147,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_HS(Garand::GarandIns
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Carry == 1)
-        do_jump(reg_struct, reg_dest);
+    if (reg_struct->Condition.Carry == 1) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_dest;
+    }
 
     return wb;
 }
@@ -159,8 +163,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_LT(Garand::GarandIns
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Negative != reg_struct->Condition.Overflow)
-        do_jump(reg_struct, reg_dest);
+    if (reg_struct->Condition.Negative != reg_struct->Condition.Overflow) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_dest;
+    }
 
     return wb;
 }
@@ -173,8 +179,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_GE(Garand::GarandIns
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Negative == reg_struct->Condition.Overflow)
-        do_jump(reg_struct, reg_dest);
+    if (reg_struct->Condition.Negative == reg_struct->Condition.Overflow) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_dest;
+    }
 
     return wb;
 }
@@ -187,8 +195,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_HI(Garand::GarandIns
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero == 0)
-        do_jump(reg_struct, reg_dest);
+    if (reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero == 0) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_dest;
+    }
 
     return wb;
 }
@@ -201,8 +211,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_LS(Garand::GarandIns
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (!(reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero))
-        do_jump(reg_struct, reg_dest);
+    if (!(reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero)) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_dest;
+    }
 
     return wb;
 }
@@ -215,8 +227,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_GT(Garand::GarandIns
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Zero == 0 && reg_struct->Condition.Negative == reg_struct->Condition.Overflow)
-        do_jump(reg_struct, reg_dest);
+    if (reg_struct->Condition.Zero == 0 && reg_struct->Condition.Negative == reg_struct->Condition.Overflow) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_dest;
+    }
 
     return wb;
 }
@@ -229,8 +243,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_LE(Garand::GarandIns
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (!(reg_struct->Condition.Zero == 0 && reg_struct->Condition.Negative == reg_struct->Condition.Overflow))
-        do_jump(reg_struct, reg_dest);
+    if (!(reg_struct->Condition.Zero == 0 && reg_struct->Condition.Negative == reg_struct->Condition.Overflow)) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_dest;
+    }
 
     return wb;
 }
@@ -243,8 +259,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_VC(Garand::GarandIns
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Overflow == 0)
-        do_jump(reg_struct, reg_dest);
+    if (reg_struct->Condition.Overflow == 0) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_dest;
+    }
 
     return wb;
 }
@@ -257,8 +275,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_VS(Garand::GarandIns
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Overflow == 1)
-        do_jump(reg_struct, reg_dest);
+    if (reg_struct->Condition.Overflow == 1) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_dest;
+    }
 
     return wb;
 }
@@ -271,8 +291,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_PL(Garand::GarandIns
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Negative == 0)
-        do_jump(reg_struct, reg_dest);
+    if (reg_struct->Condition.Negative == 0) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_dest;
+    }
 
     return wb;
 }
@@ -285,8 +307,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BRUHCC_NG(Garand::GarandIns
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Negative == 1)
-        do_jump(reg_struct, reg_dest);
+    if (reg_struct->Condition.Negative == 1) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_dest;
+    }
 
     return wb;
 }
@@ -299,7 +323,8 @@ Garand::InstructionWriteBack Garand::InstructionSet::BCC_AL(Garand::GarandInstru
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+    wb.reg = &reg_struct->ProgramCounter;
+    wb.value = reg_struct->ProgramCounter + reg_dest;
 
     return wb;
 }
@@ -312,8 +337,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BCC_EQ(Garand::GarandInstru
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Zero == 1)
-        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+    if (reg_struct->Condition.Zero == 1) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_struct->ProgramCounter + reg_dest;
+    }
 
     return wb;
 }
@@ -326,8 +353,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BCC_NE(Garand::GarandInstru
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Zero == 0)
-        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+    if (reg_struct->Condition.Zero == 0) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_struct->ProgramCounter + reg_dest;
+    }
 
     return wb;
 }
@@ -340,8 +369,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BCC_LO(Garand::GarandInstru
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Carry == 0)
-        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+    if (reg_struct->Condition.Carry == 0) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_struct->ProgramCounter + reg_dest;
+    }
 
     return wb;
 }
@@ -354,8 +385,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BCC_HS(Garand::GarandInstru
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Carry == 1)
-        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+    if (reg_struct->Condition.Carry == 1) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_struct->ProgramCounter + reg_dest;
+    }
 
     return wb;
 }
@@ -368,8 +401,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BCC_LT(Garand::GarandInstru
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Negative != reg_struct->Condition.Overflow)
-        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+    if (reg_struct->Condition.Negative != reg_struct->Condition.Overflow) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_struct->ProgramCounter + reg_dest;
+    }
 
     return wb;
 }
@@ -382,8 +417,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BCC_GE(Garand::GarandInstru
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Negative == reg_struct->Condition.Overflow)
-        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+    if (reg_struct->Condition.Negative == reg_struct->Condition.Overflow) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_struct->ProgramCounter + reg_dest;
+    }
 
     return wb;
 }
@@ -396,8 +433,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BCC_HI(Garand::GarandInstru
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero == 0)
-        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+    if (reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero == 0) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_struct->ProgramCounter + reg_dest;
+    }
 
     return wb;
 }
@@ -410,8 +449,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BCC_LS(Garand::GarandInstru
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (!(reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero))
-        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+    if (!(reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero)) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_struct->ProgramCounter + reg_dest;
+    }
 
     return wb;
 }
@@ -424,8 +465,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BCC_GT(Garand::GarandInstru
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Zero == 0 && reg_struct->Condition.Negative == reg_struct->Condition.Overflow)
-        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+    if (reg_struct->Condition.Zero == 0 && reg_struct->Condition.Negative == reg_struct->Condition.Overflow) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_struct->ProgramCounter + reg_dest;
+    }
 
     return wb;
 }
@@ -438,8 +481,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BCC_LE(Garand::GarandInstru
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (!(reg_struct->Condition.Zero == 0 && reg_struct->Condition.Negative == reg_struct->Condition.Overflow))
-        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+    if (!(reg_struct->Condition.Zero == 0 && reg_struct->Condition.Negative == reg_struct->Condition.Overflow)) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_struct->ProgramCounter + reg_dest;
+    }
 
     return wb;
 }
@@ -452,8 +497,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BCC_VC(Garand::GarandInstru
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Overflow == 0)
-        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+    if (reg_struct->Condition.Overflow == 0) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_struct->ProgramCounter + reg_dest;
+    }
 
     return wb;
 }
@@ -466,8 +513,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BCC_VS(Garand::GarandInstru
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Overflow == 1)
-        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+    if (reg_struct->Condition.Overflow == 1) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_struct->ProgramCounter + reg_dest;
+    }
 
     return wb;
 }
@@ -480,8 +529,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BCC_PL(Garand::GarandInstru
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Negative == 0)
-        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+    if (reg_struct->Condition.Negative == 0) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_struct->ProgramCounter + reg_dest;
+    }
 
     return wb;
 }
@@ -494,8 +545,10 @@ Garand::InstructionWriteBack Garand::InstructionSet::BCC_NG(Garand::GarandInstru
 
     Garand::Registers* reg_struct = (Garand::Registers*) regs;
 
-    if (reg_struct->Condition.Negative == 1)
-        do_jump(reg_struct, reg_struct->ProgramCounter + reg_dest);
+    if (reg_struct->Condition.Negative == 1) {
+        wb.reg = &reg_struct->ProgramCounter;
+        wb.value = reg_struct->ProgramCounter + reg_dest;
+    }
 
     return wb;
 }
