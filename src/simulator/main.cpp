@@ -13,6 +13,7 @@
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_sdlrenderer.h>
 #include <numeric>
+#include <string>
 #include <string_view>
 #include <variant>
 #include <vector>
@@ -354,11 +355,39 @@ void pipelineDemoWindow() {
     ImGui::End();
 }
 
+void disassemblerDemoWindow() {
+    ImGui::Begin("Disassembler demo");
+    static std::vector<uint8_t> mem(0x10000);
+    static ImGui::MemoryEditor mem_edit;
+    static std::string buffer;
+    constexpr auto convert = [](uint32_t raw) -> Garand::GarandInstruction {
+        return Garand::GarandInstruction{
+            .ConditionFlags = (uint8_t)((raw >> 28) & 0xf),
+            .Operation = (uint8_t)((raw >> 22) & 0x3f),
+            .InstructionSpecific = raw & 0x3fff};
+    };
+    ImGui::InputTextMultiline("Disassmble:\n", buffer.data(), buffer.size());
+    mem_edit.DrawContents(mem.data(), mem.size());
+    if (mem_edit.DataEditingTakeFocus) {
+        auto iter = mem_edit.DataEditingAddr;
+        auto count = 16;
+        buffer.clear();
+        while ((iter + 4 <= mem.size()) && (--count >= 0)) {
+            auto load = *reinterpret_cast<uint32_t *>(&mem[iter]);
+            iter += 4;
+            buffer += Garand::disassemble(convert(load));
+            buffer += "\n";
+        }
+    }
+    ImGui::End();
+}
+
 void debuggui() {
     static bool show_demo_window = false;
     static bool show_memory_demo_window = false;
     static bool show_instruction_demo_window = false;
     static bool show_pipeline_demo_window = false;
+    static bool show_disasm_demo_window = false;
     if (show_demo_window) {
         ImGui::ShowDemoWindow(&show_demo_window);
     }
@@ -371,12 +400,16 @@ void debuggui() {
     if (show_pipeline_demo_window) {
         pipelineDemoWindow();
     }
+    if (show_disasm_demo_window) {
+        disassemblerDemoWindow();
+    }
     // Edit bools storing our window open/close state
     ImGui::Begin("Control UI");
     ImGui::Checkbox("Demo Window", &show_demo_window);
     ImGui::Checkbox("Memory Demo", &show_memory_demo_window);
     ImGui::Checkbox("Instruction Demo", &show_instruction_demo_window);
     ImGui::Checkbox("Pipeline Demo", &show_pipeline_demo_window);
+    ImGui::Checkbox("Disassembler Demo", &show_disasm_demo_window);
     ImGui::End();
 }
 
