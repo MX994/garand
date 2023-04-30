@@ -190,7 +190,6 @@ void instructionDemoWindow() {
         .InstructionSpecific = 0b00000100000100000010,
     };
     static Garand::Memory mem;
-
     const auto mne = Garand::disassemble(asmline);
     ImGui::Text("Assembly: %s", mne.c_str());
     constexpr auto value_step = 1;

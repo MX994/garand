@@ -20,7 +20,7 @@ namespace Garand {
 
   struct InstructionWk {
     GarandInstruction Instruction;
-    DecodedInstruction DecodedInstruction;
+    DecodedInstruction decodedInstruction;
     InstructionWriteBack WriteBack;
     unsigned int CycleCount;
     unsigned int CycleMax[PIPELINE_STAGES];
