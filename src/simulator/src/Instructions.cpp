@@ -1229,14 +1229,35 @@ Garand::InstructionWriteBack Garand::InstructionSet::LogicalShiftRightImmediate(
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::RotationalShiftRight(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest = (instr.InstructionSpecific >> 14) & 0b111111;
+    wb.reg = (Garand::load_reg(regs, dest));
+
+    int src = (instr.InstructionSpecific >> 8) & 0b111111;
+    int val = (instr.InstructionSpecific >> 2) & 0b111111;
+
+    uint64_t reg_src = *(Garand::load_reg(regs, src));
+    uint64_t reg_val = *(Garand::load_reg(regs, val));
+
+    wb.value = (reg_src << reg_val) | (reg_src >> (sizeof(int)*8) - reg_val);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::RotationalShiftRightImmediate(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest = (instr.InstructionSpecific >> 14) & 0b111111;
+    wb.reg = (Garand::load_reg(regs, dest));
+
+    int src = (instr.InstructionSpecific >> 8) & 0b111111;
+    int val = instr.InstructionSpecific & 0b11111111;
+
+    uint64_t reg_src = *(Garand::load_reg(regs, src));
+
+    wb.value = (reg_src << val) | (reg_src >> (sizeof(int)*8) - val);
+
     return wb;
 }
 
