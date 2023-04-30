@@ -589,13 +589,49 @@ Garand::InstructionWriteBack Garand::InstructionSet::AddImmediate(Garand::Garand
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::FX_Add(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest = (instr.InstructionSpecific >> 14) & 0b111111;
+    wb.reg = (Garand::load_reg(regs, dest));
+
+    int src = (instr.InstructionSpecific >> 8) & 0b111111;
+    int val = (instr.InstructionSpecific >> 2) & 0b111111;
+
+    uint64_t reg_src = *(Garand::load_reg(regs, src));
+    uint64_t reg_val = *(Garand::load_reg(regs, val));
+
+    int r1_fractional = reg_src & 0x7FFFFF;
+    int r1_exponent = (reg_src >> 23) & 0xFF;
+    int r1_sign = (reg_src >> 31) & 1;
+    
+    if (r1_sign) {
+        r1_fractional = -r1_fractional;
+        r1_exponent = -r1_exponent;
+    }
+
+    int r2_fractional = reg_src & 0x7FFFFF;
+    int r2_exponent = (reg_src >> 23) & 0xFF;
+    int r2_sign = (reg_src >> 31) & 1;
+
+    if (r2_sign) {
+        r2_fractional = -r2_fractional;
+        r2_exponent = -r2_exponent;
+    }
+
+    int res_fractional = r2_fractional + r1_fractional;
+    int final_fractional = res_fractional & 0x7FFFFF;
+    int fractional_overflow = res_fractional & 0x800000;
+
+    int res_exponent = (r2_exponent + r1_exponent) + fractional_overflow;
+
+    wb.value = (res_fractional & 0x7FFFFF) | (res_exponent << 23) | (r1_sign & r2_sign ? (r1_sign << 31) : 0);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::FX_AddImmediate(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
     // TODO: Implement Instruction
+    // Edit: Not doable since fixed point wont fit in immediate
     Garand::InstructionWriteBack wb;
     return wb;
 }
@@ -699,13 +735,49 @@ Garand::InstructionWriteBack Garand::InstructionSet::CompareImmediate(Garand::Ga
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::FX_Subtract(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest = (instr.InstructionSpecific >> 14) & 0b111111;
+    wb.reg = (Garand::load_reg(regs, dest));
+
+    int src = (instr.InstructionSpecific >> 8) & 0b111111;
+    int val = (instr.InstructionSpecific >> 2) & 0b111111;
+
+    uint64_t reg_src = *(Garand::load_reg(regs, src));
+    uint64_t reg_val = *(Garand::load_reg(regs, val));
+
+    int r1_fractional = reg_src & 0x7FFFFF;
+    int r1_exponent = (reg_src >> 23) & 0xFF;
+    int r1_sign = (reg_src >> 31) & 1;
+    
+    if (r1_sign) {
+        r1_fractional = -r1_fractional;
+        r1_exponent = -r1_exponent;
+    }
+
+    int r2_fractional = reg_src & 0x7FFFFF;
+    int r2_exponent = (reg_src >> 23) & 0xFF;
+    int r2_sign = (reg_src >> 31) & 1;
+
+    if (r2_sign) {
+        r2_fractional = -r2_fractional;
+        r2_exponent = -r2_exponent;
+    }
+
+    int res_fractional = r1_fractional - r2_fractional;
+    int final_fractional = res_fractional & 0x7FFFFF;
+    int fractional_overflow = res_fractional & 0x800000;
+
+    int res_exponent = (r1_exponent - r2_exponent) + fractional_overflow;
+
+    wb.value = (res_fractional & 0x7FFFFF) | (res_exponent << 23) | (r1_sign & r2_sign ? (r1_sign << 31) : 0);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::FX_SubtractImmediate(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
     // TODO: Implement Instruction
+    // Edit: Not doable since fixed point wont fit in immediate
     Garand::InstructionWriteBack wb;
     return wb;
 }
@@ -764,20 +836,91 @@ Garand::InstructionWriteBack Garand::InstructionSet::MultiplyAdd(Garand::GarandI
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::FX_Multiply(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest = (instr.InstructionSpecific >> 14) & 0b111111;
+    wb.reg = (Garand::load_reg(regs, dest));
+
+    int src = (instr.InstructionSpecific >> 8) & 0b111111;
+    int val = (instr.InstructionSpecific >> 2) & 0b111111;
+
+    uint64_t reg_src = *(Garand::load_reg(regs, src));
+    uint64_t reg_val = *(Garand::load_reg(regs, val));
+
+    int r1_fractional = reg_src & 0x7FFFFF;
+    int r1_exponent = (reg_src >> 23) & 0xFF;
+    int r1_sign = (reg_src >> 31) & 1;
+    
+    if (r1_sign) {
+        r1_fractional = -r1_fractional;
+        r1_exponent = -r1_exponent;
+    }
+
+    int r2_fractional = reg_src & 0x7FFFFF;
+    int r2_exponent = (reg_src >> 23) & 0xFF;
+    int r2_sign = (reg_src >> 31) & 1;
+
+    if (r2_sign) {
+        r2_fractional = -r2_fractional;
+        r2_exponent = -r2_exponent;
+    }
+
+    int res_fractional = r1_fractional * r2_fractional;
+    int final_fractional = res_fractional & 0x7FFFFF;
+    int fractional_overflow = res_fractional & 0x800000;
+
+    int res_exponent = (r1_exponent * r2_exponent) + fractional_overflow;
+
+    wb.value = (res_fractional & 0x7FFFFF) | (res_exponent << 23) | (r1_sign & r2_sign ? (r1_sign << 31) : 0);
+
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::FX_MultiplyImmediate(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
     // TODO: Implement Instruction
+    // Edit: Not doable since fixed point wont fit in immediate
     Garand::InstructionWriteBack wb;
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::FX_MultiplyAdd(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+    int dest = (instr.InstructionSpecific >> 14) & 0b111111;
+    wb.reg = (Garand::load_reg(regs, dest));
+
+    int src = (instr.InstructionSpecific >> 8) & 0b111111;
+    int val = (instr.InstructionSpecific >> 2) & 0b111111;
+
+    uint64_t reg_src = *(Garand::load_reg(regs, src));
+    uint64_t reg_val = *(Garand::load_reg(regs, val));
+
+    int r1_fractional = reg_src & 0x7FFFFF;
+    int r1_exponent = (reg_src >> 23) & 0xFF;
+    int r1_sign = (reg_src >> 31) & 1;
+    
+    if (r1_sign) {
+        r1_fractional = -r1_fractional;
+        r1_exponent = -r1_exponent;
+    }
+
+    int r2_fractional = reg_src & 0x7FFFFF;
+    int r2_exponent = (reg_src >> 23) & 0xFF;
+    int r2_sign = (reg_src >> 31) & 1;
+
+    if (r2_sign) {
+        r2_fractional = -r2_fractional;
+        r2_exponent = -r2_exponent;
+    }
+
+    int res_fractional = r1_fractional * r2_fractional;
+    int final_fractional = res_fractional & 0x7FFFFF;
+    int fractional_overflow = res_fractional & 0x800000;
+
+    int res_exponent = (r1_exponent * r2_exponent) + fractional_overflow;
+
+    wb.value = *wb.reg + ((res_fractional & 0x7FFFFF) | (res_exponent << 23) | (r1_sign & r2_sign ? (r1_sign << 31) : 0));
+
     return wb;
 }
 
@@ -817,13 +960,49 @@ Garand::InstructionWriteBack Garand::InstructionSet::DivideImmediate(Garand::Gar
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::FX_Divide(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
-    // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
+
+
+    int dest = (instr.InstructionSpecific >> 14) & 0b111111;
+    wb.reg = (Garand::load_reg(regs, dest));
+
+    int src = (instr.InstructionSpecific >> 8) & 0b111111;
+    int val = (instr.InstructionSpecific >> 2) & 0b111111;
+
+    uint64_t reg_src = *(Garand::load_reg(regs, src));
+    uint64_t reg_val = *(Garand::load_reg(regs, val));
+
+    int r1_fractional = reg_src & 0x7FFFFF;
+    int r1_exponent = (reg_src >> 23) & 0xFF;
+    int r1_sign = (reg_src >> 31) & 1;
+    
+    if (r1_sign) {
+        r1_fractional = -r1_fractional;
+        r1_exponent = -r1_exponent;
+    }
+
+    int r2_fractional = reg_src & 0x7FFFFF;
+    int r2_exponent = (reg_src >> 23) & 0xFF;
+    int r2_sign = (reg_src >> 31) & 1;
+
+    if (r2_sign) {
+        r2_fractional = -r2_fractional;
+        r2_exponent = -r2_exponent;
+    }
+
+    int res_fractional = r1_fractional / r2_fractional;
+    int final_fractional = res_fractional & 0x7FFFFF;
+    int fractional_overflow = res_fractional & 0x800000;
+
+    int res_exponent = (r1_exponent / r2_exponent) + fractional_overflow;
+
+    wb.value = (res_fractional & 0x7FFFFF) | (res_exponent << 23) | (r1_sign & r2_sign ? (r1_sign << 31) : 0);
     return wb;
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::FX_DivideImmediate(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs) {
     // TODO: Implement Instruction
+    // Edit: Not doable since fixed point wont fit in immediate
     Garand::InstructionWriteBack wb;
     return wb;
 }
