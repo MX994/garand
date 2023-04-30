@@ -364,7 +364,7 @@ void disassemblerDemoWindow() {
         return Garand::GarandInstruction{
             .ConditionFlags = (uint8_t)((raw >> 28) & 0xf),
             .Operation = (uint8_t)((raw >> 22) & 0x3f),
-            .InstructionSpecific = raw & 0x3fff};
+            .InstructionSpecific = raw & 0x3fffff};
     };
     ImGui::InputTextMultiline("Disassmble:\n", buffer.data(), buffer.size());
     mem_edit.DrawContents(mem.data(), mem.size());
