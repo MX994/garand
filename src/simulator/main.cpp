@@ -361,18 +361,20 @@ void disassemblerDemoWindow() {
     static std::string buffer;
     static char path[0x100];
     static bool load_success = true;
-    ImGui::InputTextWithHint("Executable", "path goes here", path, IM_ARRAYSIZE(path));
+    ImGui::InputTextWithHint("Executable", "path goes here", path,
+                             IM_ARRAYSIZE(path));
     ImGui::SameLine();
     if (ImGui::Button("Load")) {
         auto fd = std::fstream(path, std::fstream::in);
         load_success = fd.is_open();
         if (fd.is_open()) {
-            fd.read(reinterpret_cast<char*>(mem.data()), mem.size());
+            fd.read(reinterpret_cast<char *>(mem.data()), mem.size());
         }
     }
     if (!load_success) {
         ImGui::SameLine();
-        ImGui::TextColored(ImVec4(1.f, 160.f/255, 122.f/255, 1.f), "(Failed)");
+        ImGui::TextColored(ImVec4(1.f, 160.f / 255, 122.f / 255, 1.f),
+                           "(Failed)");
     }
     ImGui::InputTextMultiline("Disassmble:\n", buffer.data(), buffer.size());
     mem_edit.DrawContents(mem.data(), mem.size());

@@ -1,5 +1,5 @@
-#include "Memory.hpp"
 #include "Instruction.hpp"
+#include "Memory.hpp"
 #include <string>
 
 #ifndef GARAND_DISASSEMBLE_HPP
