@@ -99,7 +99,7 @@ void Processor::ExecuteMemload() {
         };
 
         Pipeline[Stage::EXECUTE]->CycleMax[Stage::EXECUTE] =
-            WkRAM.IsBlockInCache(Addr, &Garand::Blocks[Addr.Index])
+            WkRAM.IsBlockInCache(Addr, &WkRAM.Blocks[Addr.Index])
                 ? CACHE_HIT_CYCLES
                 : CACHE_MISS_CYCLES;
     }
@@ -126,5 +126,7 @@ decltype(Processor::WkRegs) const &Processor::Regs() { return WkRegs; }
 void Processor::ResetRegs() { WkRegs = Garand::Registers{}; }
 
 decltype(Processor::Clock) Processor::ReadClock() { return Clock; }
+
+Memory &Processor::ReadMem() { return WkRAM; }
 
 } // namespace Garand

@@ -1,8 +1,11 @@
 #include <iostream>
 #include "Instruction.hpp"
 
-Garand::Instruction Garand::Instruction::Encode() {
-    return Garand::Instruction();
+Garand::GarandInstruction Garand::Instruction::Encode(uint32_t raw) {
+    return Garand::GarandInstruction{
+        .ConditionFlags = (uint8_t)((raw >> 28) & 0xf),
+        .Operation = (uint8_t)((raw >> 22) & 0x3f),
+        .InstructionSpecific = raw & 0x3fffff};
 }
 
 Garand::DecodedInstruction Garand::Instruction::Decode(Garand::GarandInstruction instruction) {
