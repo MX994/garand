@@ -221,7 +221,7 @@ void instructionDemoWindow() {
         // Based on Serg change, regs must be uint64_t*
         auto wb =
             Garand::Instruction::Execute(decode, ins, mem, (uint64_t *)&regs);
-        Garand::Instruction::WriteBack(wb);
+        Garand::Instruction::WriteBack(wb, mem);
     }
     ImGui::SameLine();
     if (ImGui::Button("Reset Register")) {
@@ -359,12 +359,21 @@ void disassemblerDemoWindow() {
     static std::vector<uint8_t> mem(0x10000);
     static ImGui::MemoryEditor mem_edit;
     static std::string buffer;
-    constexpr auto convert = [](uint32_t raw) -> Garand::GarandInstruction {
-        return Garand::GarandInstruction{
-            .ConditionFlags = (uint8_t)((raw >> 28) & 0xf),
-            .Operation = (uint8_t)((raw >> 22) & 0x3f),
-            .InstructionSpecific = raw & 0x3fffff};
-    };
+    static char path[0x100];
+    static bool load_success = true;
+    ImGui::InputTextWithHint("Executable", "path goes here", path, IM_ARRAYSIZE(path));
+    ImGui::SameLine();
+    if (ImGui::Button("Load")) {
+        auto fd = std::fstream(path, std::fstream::in);
+        load_success = fd.is_open();
+        if (fd.is_open()) {
+            fd.read(reinterpret_cast<char*>(mem.data()), mem.size());
+        }
+    }
+    if (!load_success) {
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(1.f, 160.f/255, 122.f/255, 1.f), "(Failed)");
+    }
     ImGui::InputTextMultiline("Disassmble:\n", buffer.data(), buffer.size());
     mem_edit.DrawContents(mem.data(), mem.size());
     if (mem_edit.DataEditingTakeFocus) {
@@ -374,7 +383,7 @@ void disassemblerDemoWindow() {
         while ((iter + 4 <= mem.size()) && (--count >= 0)) {
             auto load = *reinterpret_cast<uint32_t *>(&mem[iter]);
             iter += 4;
-            buffer += Garand::disassemble(convert(load));
+            buffer += Garand::disassemble(Garand::Instruction::Encode(load));
             buffer += "\n";
         }
     }
