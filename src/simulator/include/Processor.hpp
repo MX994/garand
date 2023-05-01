@@ -40,6 +40,7 @@ namespace Garand {
       void WriteBack();
       void Tick();
       void ExecuteMemload();
+      void Flush(Stage);
 
     public:
       void Step();

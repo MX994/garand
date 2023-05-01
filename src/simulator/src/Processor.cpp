@@ -18,9 +18,7 @@ void Processor::Step() {
                 ExecuteMemload();
             }
             if (Pipeline[s]->CycleCount == Pipeline[s]->CycleMax[s]) {
-                if (s == Stage::FETCH) {
-                    Fetch();
-                } else if (s == Stage::DECODE) {
+                if (s == Stage::DECODE) {
                     Decode();
                 } else if (s == Stage::EXECUTE) {
                     Execute();
@@ -42,12 +40,9 @@ void Processor::Step() {
         } else {
             NextStageIsFree = true;
         }
-    }
-    // Fetch stage exclusive
-    if (!Pipeline[Stage::FETCH] && !InstructionQueue.empty()) {
-        Pipeline[Stage::FETCH] =
-            std::make_shared<InstructionWk>(InstructionQueue.front());
-        InstructionQueue.pop();
+        if (!Pipeline[s] && s == Stage::FETCH) {
+            Fetch();
+        }
     }
     Tick();
 }
@@ -55,7 +50,7 @@ void Processor::Step() {
 void Processor::Queue(GarandInstruction Inst) {
     InstructionWk Wk;
     Wk.Instruction = Inst;
-    std::array<unsigned, 4> const CycleTime{3, 4, 5, 6};
+    std::array<unsigned, 4> const CycleTime{1, 1, 1, 1};
     std::transform(CycleTime.begin(), CycleTime.end(), Wk.CycleMax,
                    [](unsigned x) { return x; });
     Wk.CycleCount = 0;
@@ -63,7 +58,22 @@ void Processor::Queue(GarandInstruction Inst) {
 }
 
 void Processor::Fetch() {
-    // Psuedo
+    if (!Pipeline[Stage::FETCH]) {
+        if (InstructionQueue.empty()) {
+            auto ins = reinterpret_cast<GarandInstruction *>(WkRAM.load(WkRegs.ProgramCounter));
+            InstructionWk Wk;
+            Wk.Instruction = *ins;
+            std::array<unsigned, 4> const CycleTime{1, 1, 1, 1};
+            std::transform(CycleTime.begin(), CycleTime.end(), Wk.CycleMax,
+                        [](unsigned x) { return x; });
+            Wk.CycleCount = 0;
+            Pipeline[Stage::FETCH] = std::make_shared<InstructionWk>(Wk);
+        } else {
+            Pipeline[Stage::FETCH] =
+                std::make_shared<InstructionWk>(InstructionQueue.front());
+            InstructionQueue.pop();
+        }
+    }
 }
 
 void Processor::Decode() {
@@ -106,10 +116,15 @@ void Processor::ExecuteMemload() {
 }
 
 void Processor::Execute() {
-    if (Pipeline[Stage::EXECUTE]) {
-        Pipeline[Stage::EXECUTE]->WriteBack = Instruction::Execute(
-            Pipeline[Stage::EXECUTE]->decodedInstruction,
-            Pipeline[Stage::EXECUTE]->Instruction, WkRAM, (uint64_t *)&WkRegs);
+    auto &ins = Pipeline[Stage::EXECUTE];
+    if (ins) {
+        auto write_back = Instruction::Execute(
+            ins->decodedInstruction,
+            ins->Instruction, WkRAM, (uint64_t *)&WkRegs);
+        if (write_back.reg == &WkRegs.ProgramCounter) {
+            Flush(Stage::EXECUTE);
+        }
+        ins->WriteBack = write_back;
     }
 }
 
@@ -117,6 +132,16 @@ void Processor::WriteBack() {
     if (Pipeline[Stage::WRITE_BACK]) {
         Garand::Instruction::WriteBack(Pipeline[Stage::WRITE_BACK]->WriteBack, WkRAM);
     }
+}
+
+void Processor::Flush(Stage current) {
+    for (int s = Stage::FETCH; s != current; ++s) {
+        Pipeline[s] = nullptr;
+    }
+    while (!InstructionQueue.empty()) {
+        InstructionQueue.pop();
+    }
+
 }
 
 decltype(Processor::Pipeline) &Processor::View() { return Pipeline; }
