@@ -5,6 +5,7 @@
 #include "Processor.hpp"
 #include "Registers.hpp"
 #include <SDL2pp/SDL2pp.hh>
+#include <SDL2pp/Texture.hh>
 #include <algorithm>
 #include <exception>
 #include <fmt/format.h>
@@ -33,6 +34,7 @@ using namespace SDL2pp;
 static constexpr uint32_t SCREEN_WIDTH = 640;
 static constexpr uint32_t SCREEN_HEIGHT = 480;
 static constexpr uint32_t framerate = 60;
+static Garand::Memory mem;
 
 class MemoryPerf {
     size_t counter = 0;
@@ -84,26 +86,23 @@ void memoryDemoWindow() {
 
     const char *items[] = {"No cache", "Cache"};
     static int item_current = 0;
-
-    using Garand::Memory;
-    static Memory memory;
-    static MemoryPerf perf{memory};
+    static MemoryPerf perf(mem);
     if (ImGui::Combo("Cache mode", &item_current, items, IM_ARRAYSIZE(items))) {
         switch (item_current) {
         case 1:
-            memory = Memory(0x200000);
+            mem = Garand::Memory(0x200000);
             break;
 
         case 0:
         default:
-            memory = Memory();
+            mem = Garand::Memory();
             break;
         }
         // Attach to perf counter
-        perf = MemoryPerf{memory};
+        perf = MemoryPerf{mem};
     }
 
-    ImGui::Text("Memory size: %llu", memory.get_size());
+    ImGui::Text("Memory size: %llu", mem.get_size());
 
     ImGui::Text("Latency: %llu", perf.get_latency());
     ImGui::Text("Latency Avg.: %lf", perf.get_latency_avg());
@@ -112,7 +111,7 @@ void memoryDemoWindow() {
     ImGui::Checkbox("Cache Window", &cache_view);
 
     if (cache_view) {
-        cacheMemWindow(memory);
+        cacheMemWindow(mem);
     }
 
     static Garand::AddressSize address = 0;
@@ -127,16 +126,20 @@ void memoryDemoWindow() {
                        &value_step, "%lu");
 
     if (ImGui::Button("Load")) {
-        value = *memory.load(address);
-        perf.update(memory);
+        value = *mem.load(address);
+        perf.update(mem);
     }
     ImGui::SameLine();
     if (ImGui::Button("Store")) {
-        memory.store(address, value);
-        perf.update(memory);
+        mem.store(address, value);
+        perf.update(mem);
     }
     static ImGui::MemoryEditor mem_edit;
-    mem_edit.DrawContents(memory.get_raw(), memory.get_size());
+    mem_edit.DrawContents(mem.get_raw(), mem.get_size());
+    mem_edit.WriteFn = [](ImU8* data, size_t off, ImU8 d) {
+        mem.store(off, d);
+        perf.update(mem);
+    };
     ImGui::End();
 }
 
@@ -189,7 +192,6 @@ void instructionDemoWindow() {
         .Operation = 0b000100,
         .InstructionSpecific = 0b00000100000100000010,
     };
-    static Garand::Memory mem;
     const auto mne = Garand::disassemble(asmline);
     ImGui::Text("Assembly: %s", mne.c_str());
     constexpr auto value_step = 1;
@@ -235,7 +237,6 @@ void pipelineDemoWindow() {
     static auto asm_input = std::vector<Garand::GarandInstruction>{};
     static auto asm_input_idx = 0U;
     static auto next_execution = 0U;
-    static Garand::Memory mem;
     static Garand::Processor cpu;
     if (ImGui::BeginListBox("AssemblyPipeline")) {
         for (auto n = 0U; n < asm_input.size(); ++n) {
@@ -284,7 +285,10 @@ void pipelineDemoWindow() {
     auto &memory = cpu.ReadMem();
     ImGui::Begin("Memory View");
     static ImGui::MemoryEditor mem_edit;
-    mem_edit.DrawContents(memory.get_raw(), memory.get_size());
+    mem_edit.DrawContents(mem.get_raw(), mem.get_size());
+    mem_edit.WriteFn = [](ImU8* data, size_t off, ImU8 d) {
+        mem.store(off, d);
+    };
     ImGui::End();
 
     auto &regs = cpu.Regs();
@@ -479,8 +483,16 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
             // Clear screen
             renderer.Clear();
 
+            int w = renderer.GetOutputWidth(), h = renderer.GetOutputHeight();
+	        Texture sprite(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STATIC, 32, 32);
+            {
+                sprite.Update(NullOpt, (char *)mem.load(0x1000), 3);
+            }		
+            renderer.Copy(sprite, NullOpt);
+
             // Show rendered frame
             ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
+
             renderer.Present();
 
             // Frame limiter
