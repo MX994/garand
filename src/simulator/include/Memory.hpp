@@ -7,7 +7,7 @@
 
 namespace Garand {
 using LoadSize = uint32_t;
-using AddressSize = uint32_t;
+using AddressSize = uint64_t;
 constexpr uint16_t CACHE_BLOCK_COUNT = 0x100; // 2^8.
 constexpr uint32_t CACHE_BLOCK_SIZE = 0x10000; // 2 ^ 16.
 constexpr uint32_t CACHE_MISS_CYCLES = 0x15;

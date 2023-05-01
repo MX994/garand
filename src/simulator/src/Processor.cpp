@@ -60,13 +60,15 @@ void Processor::Queue(GarandInstruction Inst) {
 void Processor::Fetch() {
     if (!Pipeline[Stage::FETCH]) {
         if (InstructionQueue.empty()) {
-            auto &ins = *reinterpret_cast<uint32_t *>(WkRAM.load(WkRegs.ProgramCounter));
+            auto &ins = *reinterpret_cast<uint32_t *>(
+                WkRAM.load(WkRegs.ProgramCounter));
             InstructionWk Wk;
             Wk.Instruction = Instruction::Encode(ins);
             std::array<unsigned, 4> const CycleTime{1, 1, 1, 1};
             std::transform(CycleTime.begin(), CycleTime.end(), Wk.CycleMax,
-                        [](unsigned x) { return x; });
+                           [](unsigned x) { return x; });
             Wk.CycleCount = 0;
+            Wk.Pointer = WkRegs.ProgramCounter;
             Pipeline[Stage::FETCH] = std::make_shared<InstructionWk>(Wk);
             WkRegs.ProgramCounter += 4;
         } else {
@@ -119,9 +121,10 @@ void Processor::ExecuteMemload() {
 void Processor::Execute() {
     auto &ins = Pipeline[Stage::EXECUTE];
     if (ins) {
-        auto write_back = Instruction::Execute(
-            ins->decodedInstruction,
-            ins->Instruction, WkRAM, (uint64_t *)&WkRegs);
+        auto write_back =
+            Instruction::Execute(ins->decodedInstruction, ins->Instruction,
+                                 WkRAM, (uint64_t *)&WkRegs);
+        ins->StagnatePCDiff = WkRegs.ProgramCounter - ins->Pointer;
         ins->WriteBack = write_back;
     }
 }
@@ -129,6 +132,17 @@ void Processor::Execute() {
 void Processor::WriteBack() {
     if (Pipeline[Stage::WRITE_BACK]) {
         auto &wb = Pipeline[Stage::WRITE_BACK]->WriteBack;
+        auto &state = Pipeline[Stage::WRITE_BACK];
+        using Garand::DecodedInstruction;
+        constexpr std::array<DecodedInstruction, 15> rel_branch = {
+            BCC_AL, BCC_EQ, BCC_NE, BCC_LO, BCC_HS, BCC_LT, BCC_GE, BCC_HI,
+            BCC_LS, BCC_GT, BCC_LE, BCC_VC, BCC_VS, BCC_PL, BCC_NG};
+        if (std::binary_search(rel_branch.begin(), rel_branch.end(),
+                               state->decodedInstruction)) {
+            // Since the write-back happens after PC is updated in Fetch stage
+            // We has to fix by using the offset
+            wb.value -= state->StagnatePCDiff;
+        }
         Garand::Instruction::WriteBack(wb, WkRAM);
         if (wb.reg == &WkRegs.ProgramCounter) {
             Flush(Stage::WRITE_BACK);
@@ -143,7 +157,6 @@ void Processor::Flush(Stage current) {
     while (!InstructionQueue.empty()) {
         InstructionQueue.pop();
     }
-
 }
 
 decltype(Processor::Pipeline) &Processor::View() { return Pipeline; }
