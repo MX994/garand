@@ -101,6 +101,11 @@ auto Imm1(uint64_t raw) {
     return std::make_tuple(parameter);
 }
 
+auto Add1(uint64_t raw) {
+    int64_t parameter = raw & 0x3fffff;
+    return std::make_tuple(parameter);
+}
+
 auto Reg1(uint64_t raw) {
     auto parameter = raw & 0x3fffff;
     Reg dest = (parameter >> 14) & 0x3f;
@@ -117,7 +122,7 @@ auto Reg2(uint64_t raw) {
 auto Reg1Imm1(uint64_t raw) {
     auto parameter = raw & 0x3fffff;
     Reg par1 = (parameter >> 14) & 0x3f;
-    Imm imm = parameter & 0x3fff;
+    Imm imm = parameter & 0xfff;
     return std::make_tuple(par1, imm);
 }
 
@@ -202,7 +207,7 @@ std::string disassemble(GarandInstruction ins) {
             [&](auto &&...args) {
                 return format("{} {}", get_ins_mnemonic(ins), args...);
             },
-            Imm1(raw));
+            Add1(raw));
     case NOT:
     case CMP:
     case TEST:
