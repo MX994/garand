@@ -54,6 +54,7 @@ namespace Garand {
       void ResetRegs();
       decltype(Clock) ReadClock();
       Memory& ReadMem();
+      AddressSize ReadExecPC();
   };
 } // namespace Garand
 

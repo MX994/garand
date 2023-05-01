@@ -169,4 +169,12 @@ decltype(Processor::Clock) Processor::ReadClock() { return Clock; }
 
 Memory &Processor::ReadMem() { return WkRAM; }
 
+AddressSize Processor::ReadExecPC() {
+    if (Pipeline[Stage::EXECUTE]) {
+        return Pipeline[Stage::EXECUTE]->Pointer;
+    } else {
+        return 0;
+    }
+}
+
 } // namespace Garand

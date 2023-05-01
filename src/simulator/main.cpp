@@ -365,7 +365,8 @@ void pipelineDemoWindow() {
         is_running = !is_running;
     }
     static bool is_bp_hit = false;
-    if (!is_bp_hit && breakpoints.count(cpu.Regs().ProgramCounter)) {
+    auto exec_pc = cpu.ReadExecPC();
+    if (!is_bp_hit && exec_pc != 0 && breakpoints.count(exec_pc)) {
         is_running = false;
         is_bp_hit = true;
     } else {
@@ -403,6 +404,9 @@ void disassemblerDemoWindow() {
     static std::string buffer;
     static char path[0x100];
     static bool load_success = true;
+    if (ImGui::Button("Reset")) {
+        mem.clear();
+    }
     ImGui::InputTextWithHint("Executable", "path goes here", path,
                              IM_ARRAYSIZE(path));
     ImGui::SameLine();
@@ -418,7 +422,7 @@ void disassemblerDemoWindow() {
         ImGui::TextColored(ImVec4(1.f, 160.f / 255, 122.f / 255, 1.f),
                            "(Failed)");
     }
-    ImGui::InputTextMultiline("Disassmble:\n", buffer.data(), buffer.size());
+    ImGui::InputTextMultiline("Disassmble\n", buffer.data(), buffer.size());
     mem_edit.DrawContents(mem.data(), mem.size());
     if (mem_edit.DataEditingTakeFocus) {
         auto iter = mem_edit.DataEditingAddr;
