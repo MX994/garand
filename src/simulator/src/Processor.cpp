@@ -126,6 +126,9 @@ void Processor::Execute() {
                                  WkRAM, (uint64_t *)&WkRegs);
         ins->StagnatePCDiff = WkRegs.ProgramCounter - ins->Pointer;
         ins->WriteBack = write_back;
+        if (write_back.reg == &WkRegs.ProgramCounter) {
+            Flush(Stage::EXECUTE);
+        }
     }
 }
 
