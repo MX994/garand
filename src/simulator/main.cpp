@@ -120,8 +120,8 @@ void memoryDemoWindow() {
     static Garand::AddressSize address = 0;
     constexpr Garand::AddressSize address_step = 1;
     constexpr Garand::AddressSize address_step_fast = 16;
-    static Garand::LoadSize value = 0;
-    constexpr Garand::LoadSize value_step = 0;
+    static auto value = 0U;
+    constexpr auto value_step = 0U;
 
     ImGui::InputScalar("address", ImGuiDataType_U32, &address, &address_step,
                        &address_step_fast, "%08lX");
@@ -129,7 +129,7 @@ void memoryDemoWindow() {
                        &value_step, "%lu");
 
     if (ImGui::Button("Load")) {
-        value = *memory.load(address);
+        value = *memory.load<decltype(value)>(address);
         perf.update(memory);
     }
     ImGui::SameLine();
