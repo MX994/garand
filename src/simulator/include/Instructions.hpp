@@ -19,7 +19,7 @@ namespace Garand {
         // If true, writeback to register. Else writeback to memory
         bool is_reg = true;
         uint64_t value;
-        uint64_t* reg;
+        LoadSize* reg;
     };
 
     class InstructionSet {

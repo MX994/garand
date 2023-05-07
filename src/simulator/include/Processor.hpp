@@ -22,6 +22,9 @@ namespace Garand {
     GarandInstruction Instruction;
     DecodedInstruction decodedInstruction;
     InstructionWriteBack WriteBack;
+    AddressSize Pointer;
+    // Fix the wrong offset of PC on relative branching
+    AddressSize StagnatePCDiff;
     unsigned int CycleCount;
     unsigned int CycleMax[PIPELINE_STAGES];
   };
@@ -33,6 +36,7 @@ namespace Garand {
       std::shared_ptr<InstructionWk> Pipeline[PIPELINE_STAGES];
       std::queue<InstructionWk> InstructionQueue;
       uint64_t Clock = 0;
+      AddressSize InstructionCounter = 0;
 
       void Fetch();
       void Decode();
@@ -40,6 +44,7 @@ namespace Garand {
       void WriteBack();
       void Tick();
       void ExecuteMemload();
+      void Flush(Stage);
 
     public:
       void Step();
@@ -49,6 +54,7 @@ namespace Garand {
       void ResetRegs();
       decltype(Clock) ReadClock();
       Memory& ReadMem();
+      AddressSize ReadExecPC();
   };
 } // namespace Garand
 

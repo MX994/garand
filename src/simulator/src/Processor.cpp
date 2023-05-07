@@ -18,9 +18,7 @@ void Processor::Step() {
                 ExecuteMemload();
             }
             if (Pipeline[s]->CycleCount == Pipeline[s]->CycleMax[s]) {
-                if (s == Stage::FETCH) {
-                    Fetch();
-                } else if (s == Stage::DECODE) {
+                if (s == Stage::DECODE) {
                     Decode();
                 } else if (s == Stage::EXECUTE) {
                     Execute();
@@ -42,12 +40,9 @@ void Processor::Step() {
         } else {
             NextStageIsFree = true;
         }
-    }
-    // Fetch stage exclusive
-    if (!Pipeline[Stage::FETCH] && !InstructionQueue.empty()) {
-        Pipeline[Stage::FETCH] =
-            std::make_shared<InstructionWk>(InstructionQueue.front());
-        InstructionQueue.pop();
+        if (!Pipeline[s] && s == Stage::FETCH) {
+            Fetch();
+        }
     }
     Tick();
 }
@@ -55,7 +50,7 @@ void Processor::Step() {
 void Processor::Queue(GarandInstruction Inst) {
     InstructionWk Wk;
     Wk.Instruction = Inst;
-    std::array<unsigned, 4> const CycleTime{3, 4, 5, 6};
+    std::array<unsigned, 4> const CycleTime{1, 1, 1, 1};
     std::transform(CycleTime.begin(), CycleTime.end(), Wk.CycleMax,
                    [](unsigned x) { return x; });
     Wk.CycleCount = 0;
@@ -63,7 +58,24 @@ void Processor::Queue(GarandInstruction Inst) {
 }
 
 void Processor::Fetch() {
-    // Psuedo
+    if (!Pipeline[Stage::FETCH]) {
+        if (InstructionQueue.empty()) {
+            auto &ins = *WkRAM.load<uint32_t>(WkRegs.ProgramCounter);
+            InstructionWk Wk;
+            Wk.Instruction = Instruction::Encode(ins);
+            std::array<unsigned, 4> const CycleTime{1, 1, 1, 1};
+            std::transform(CycleTime.begin(), CycleTime.end(), Wk.CycleMax,
+                           [](unsigned x) { return x; });
+            Wk.CycleCount = 0;
+            Wk.Pointer = WkRegs.ProgramCounter;
+            Pipeline[Stage::FETCH] = std::make_shared<InstructionWk>(Wk);
+            WkRegs.ProgramCounter += 4;
+        } else {
+            Pipeline[Stage::FETCH] =
+                std::make_shared<InstructionWk>(InstructionQueue.front());
+            InstructionQueue.pop();
+        }
+    }
 }
 
 void Processor::Decode() {
@@ -106,16 +118,46 @@ void Processor::ExecuteMemload() {
 }
 
 void Processor::Execute() {
-    if (Pipeline[Stage::EXECUTE]) {
-        Pipeline[Stage::EXECUTE]->WriteBack = Instruction::Execute(
-            Pipeline[Stage::EXECUTE]->decodedInstruction,
-            Pipeline[Stage::EXECUTE]->Instruction, WkRAM, (uint64_t *)&WkRegs);
+    auto &ins = Pipeline[Stage::EXECUTE];
+    if (ins) {
+        auto write_back =
+            Instruction::Execute(ins->decodedInstruction, ins->Instruction,
+                                 WkRAM, (uint64_t *)&WkRegs);
+        ins->StagnatePCDiff = WkRegs.ProgramCounter - ins->Pointer;
+        ins->WriteBack = write_back;
+        if (write_back.reg == &WkRegs.ProgramCounter) {
+            Flush(Stage::EXECUTE);
+        }
     }
 }
 
 void Processor::WriteBack() {
     if (Pipeline[Stage::WRITE_BACK]) {
-        Garand::Instruction::WriteBack(Pipeline[Stage::WRITE_BACK]->WriteBack, WkRAM);
+        auto &wb = Pipeline[Stage::WRITE_BACK]->WriteBack;
+        auto &state = Pipeline[Stage::WRITE_BACK];
+        using Garand::DecodedInstruction;
+        constexpr std::array<DecodedInstruction, 15> rel_branch = {
+            BCC_AL, BCC_EQ, BCC_NE, BCC_LO, BCC_HS, BCC_LT, BCC_GE, BCC_HI,
+            BCC_LS, BCC_GT, BCC_LE, BCC_VC, BCC_VS, BCC_PL, BCC_NG};
+        if (std::binary_search(rel_branch.begin(), rel_branch.end(),
+                               state->decodedInstruction)) {
+            // Since the write-back happens after PC is updated in Fetch stage
+            // We has to fix by using the offset
+            wb.value -= state->StagnatePCDiff;
+        }
+        Garand::Instruction::WriteBack(wb, WkRAM);
+        if (wb.reg == &WkRegs.ProgramCounter) {
+            Flush(Stage::WRITE_BACK);
+        }
+    }
+}
+
+void Processor::Flush(Stage current) {
+    for (int s = Stage::FETCH; s != current; ++s) {
+        Pipeline[s] = nullptr;
+    }
+    while (!InstructionQueue.empty()) {
+        InstructionQueue.pop();
     }
 }
 
@@ -128,5 +170,13 @@ void Processor::ResetRegs() { WkRegs = Garand::Registers{}; }
 decltype(Processor::Clock) Processor::ReadClock() { return Clock; }
 
 Memory &Processor::ReadMem() { return WkRAM; }
+
+AddressSize Processor::ReadExecPC() {
+    if (Pipeline[Stage::EXECUTE]) {
+        return Pipeline[Stage::EXECUTE]->Pointer;
+    } else {
+        return 0;
+    }
+}
 
 } // namespace Garand

@@ -486,8 +486,7 @@ void Garand::Instruction::WriteBack(Garand::InstructionWriteBack write_back, Gar
         if (write_back.is_reg)
             *(write_back.reg) = write_back.value;
         else {
-            std::cout << "MWRITE"  << std::endl;
-            mem.store((uint32_t) *write_back.reg, write_back.value);
+            mem.store(reinterpret_cast<uint64_t>(write_back.reg), write_back.value);
         }
     }
 }

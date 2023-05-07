@@ -21,27 +21,6 @@ namespace Garand {
         return Block->Tag == Addr.Tag && Block->Valid;
     }
 
-    LoadSize *Memory::load(AddressSize address) {
-        CacheAddress Addr = {
-            .Tag = (uint8_t)((address >> 0x18) & 0xFF),
-            .Index = ((address >> 0x10) & 0xFF) % 0x100,
-            .Offset = address & 0xFFFF,
-        };
-        CacheBlock *Block = CacheCheckHitMiss(Addr);
-        return (LoadSize *)(Block->Data + Addr.Offset);
-    }
-
-    void Memory::store(AddressSize address, LoadSize value) {
-        CacheAddress Addr = {
-            .Tag = (uint8_t)((address >> 0x18) & 0xFF),
-            .Index = ((address >> 0x10) & 0xFF) % 0x100,
-            .Offset = address & 0xFFFF,
-        };
-        CacheBlock *Block = CacheCheckHitMiss(Addr);
-        *(LoadSize *)(&Block->Data[Addr.Offset]) = value;
-        *(LoadSize *)(&this->memory_region[address]) = value;
-    }
-
     size_t Memory::get_size() {
         return this->size;
     }
