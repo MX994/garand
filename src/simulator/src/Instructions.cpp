@@ -3,7 +3,7 @@
 #include "Memory.hpp"
 
 // #include <fmt/format.h>
-#include <iostream>
+#include <tuple>
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::MemoryRead(Garand::GarandInstruction instr,
@@ -17,18 +17,18 @@ Garand::InstructionSet::MemoryRead(Garand::GarandInstruction instr,
     wb.reg = (Garand::load_reg(regs, dest));
 
     if (!imm_flag) {
-        int src = (instr.InstructionSpecific >> 8) & 0b111111;
-        int offset = (instr.InstructionSpecific >> 2) & 0b111111;
+        uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
+        uint8_t offset = (instr.InstructionSpecific >> 2) & 0b111111;
 
-        uint32_t *reg_src = (uint32_t *)(Garand::load_reg(regs, src));
-        uint32_t *reg_offset = (uint32_t *)(Garand::load_reg(regs, offset));
+        auto *reg_src = Garand::load_reg(regs, src);
+        auto *reg_offset = Garand::load_reg(regs, offset);
 
-        Garand::LoadSize *addr = mem.load(*reg_src + *reg_offset);
+        auto *addr = mem.load<Garand::LoadSize>(*reg_src + *reg_offset);
 
         wb.value = *addr;
     } else {
         int imm = instr.InstructionSpecific & 0x3FFF;
-        wb.value = *(mem.load(imm));
+        wb.value = *(mem.load<Garand::LoadSize>(imm));
     }
 
     return wb;
@@ -56,7 +56,7 @@ Garand::InstructionSet::MemoryWrite(Garand::GarandInstruction instr,
         uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
         uint64_t *reg_offset = Garand::load_reg(regs, offset);
 
-        wb.reg = (uint64_t *)(*reg_dest + *reg_offset);
+        wb.reg = reinterpret_cast<uint64_t *>(*reg_dest + *reg_offset);
         wb.value = *reg_src;
     } else {
         int dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -798,16 +798,27 @@ Garand::InstructionSet::SubtractImmediate(Garand::GarandInstruction instr,
     return wb;
 }
 
-void set_cflags(uint64_t *regs, uint64_t val, uint64_t val_2, uint64_t val_1) {
-    Garand::Registers *reg_struct = (Garand::Registers *)regs;
+std::tuple<uint64_t, Garand::ConditionFlag> AddWithCarry(uint64_t x, uint64_t y, uint8_t carry) {
+    // Based on ARM Reference Manual - shared/functions/integer/AddWithCarry
     auto constexpr get_msb = [](auto val) -> uint8_t {
         return (val >> (sizeof(val) * 8 - 1)) & 1;
     };
-    reg_struct->Condition.Zero = (val == 0ULL);
-    reg_struct->Condition.Negative = (val >= (uint64_t)(-1LL));
-    auto tmp = (get_msb(val_1) << 2) | (get_msb(val_2) << 1) | get_msb(val);
-    reg_struct->Condition.Overflow = (tmp == 0b100 || tmp == 0b11);
+    auto unsigned_sum = x + y + static_cast<uint64_t>(carry);
+    auto tmp = (get_msb(x) << 2) | (get_msb(y) << 1) | get_msb(unsigned_sum);
+    constexpr auto top = ~(1ULL << (sizeof(uint64_t) * 8 - 1));
+    auto x0 = x < top + 1;
+    auto y0 = y < top + 1;
+    auto x1 = x < top;
+    auto y1 = y < top;
+    auto flag = Garand::ConditionFlag {
+        .Zero = (unsigned_sum == 0),
+        .Negative = get_msb(unsigned_sum),
+        .Carry = static_cast<uint8_t>((x1 && y1) || (x0 && y1) || (x1 && y0)),
+        .Overflow = (tmp == 0b1 || tmp == 0b110),
+    };
+    return std::make_tuple(unsigned_sum, flag);
 }
+
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::Compare(Garand::GarandInstruction instr,
@@ -821,10 +832,8 @@ Garand::InstructionSet::Compare(Garand::GarandInstruction instr,
     auto r1_val = *(Garand::load_reg(regs, r1));
     auto r2_val = *(Garand::load_reg(regs, r2));
 
-    auto val = r1_val - r2_val;
-
-    set_cflags(regs, val, r2_val, r1_val);
-    ((Garand::Registers *)regs)->Condition.Carry = (r1_val < r2_val);
+    auto &condition = reinterpret_cast<Garand::Registers *>(regs)->Condition;
+    condition = std::get<1>(AddWithCarry(r1_val, ~r2_val, 1));
 
     return wb;
 }
@@ -840,11 +849,8 @@ Garand::InstructionSet::CompareImmediate(Garand::GarandInstruction instr,
 
     auto r1_val = *(Garand::load_reg(regs, r1));
 
-    auto val = r1_val - imm;
-
-    set_cflags(regs, val, imm, r1_val);
-    ((Garand::Registers *)regs)->Condition.Carry = (r1_val < imm);
-    // fmt::print("{} {} {}\n", r1_val, imm, val);
+    auto &condition = reinterpret_cast<Garand::Registers *>(regs)->Condition;
+    condition = std::get<1>(AddWithCarry(r1_val, ~imm, 1));
 
     return wb;
 }
@@ -1198,8 +1204,13 @@ Garand::InstructionSet::Test(Garand::GarandInstruction instr,
 
     auto val = r2_val & r1_val;
 
-    set_cflags(regs, val, r2_val, r1_val);
-
+    auto &condition = reinterpret_cast<Garand::Registers *>(regs)->Condition;
+    condition = {
+        .Zero = (val == 0),
+        .Negative = static_cast<uint8_t>((val >> (sizeof(val) * 8 - 1)) & 1),
+        .Carry = 0,
+        .Overflow = 0,
+    };
     return wb;
 }
 

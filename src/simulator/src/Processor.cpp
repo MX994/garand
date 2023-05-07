@@ -60,8 +60,7 @@ void Processor::Queue(GarandInstruction Inst) {
 void Processor::Fetch() {
     if (!Pipeline[Stage::FETCH]) {
         if (InstructionQueue.empty()) {
-            auto &ins = *reinterpret_cast<uint32_t *>(
-                WkRAM.load(WkRegs.ProgramCounter));
+            auto &ins = *WkRAM.load<uint32_t>(WkRegs.ProgramCounter);
             InstructionWk Wk;
             Wk.Instruction = Instruction::Encode(ins);
             std::array<unsigned, 4> const CycleTime{1, 1, 1, 1};

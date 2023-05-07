@@ -6,8 +6,10 @@
 #define GARAND_MEMORY_HPP
 
 namespace Garand {
-using LoadSize = uint32_t;
-using AddressSize = uint64_t;
+using InstructionSize = uint32_t;
+using RegisterSize = uint64_t;
+using LoadSize = uint64_t;
+using AddressSize = uint32_t;
 constexpr uint16_t CACHE_BLOCK_COUNT = 0x100; // 2^8.
 constexpr uint32_t CACHE_BLOCK_SIZE = 0x10000; // 2 ^ 16.
 constexpr uint32_t CACHE_MISS_CYCLES = 0x15;
@@ -42,11 +44,29 @@ class Memory {
         this->Blocks.resize(CACHE_BLOCK_COUNT);
     };
     std::vector<CacheBlock> Blocks;
-    // These two are placeholders for now
-    LoadSize *load(AddressSize address);
     CacheBlock *CacheCheckHitMiss(CacheAddress Addr);
     bool IsBlockInCache(CacheAddress Addr, CacheBlock *Block);
-    void store(AddressSize address, LoadSize value);
+    template<typename T>
+    T *load(AddressSize address) {
+        CacheAddress Addr = {
+            .Tag = (uint8_t)((address >> 0x18) & 0xFF),
+            .Index = static_cast<uint32_t>(((address >> 0x10) & 0xFF) % 0x100),
+            .Offset = static_cast<uint32_t>(address & 0xFFFF),
+        };
+        CacheBlock *Block = CacheCheckHitMiss(Addr);
+        return reinterpret_cast<T *>(Block->Data + Addr.Offset);
+    }
+    template<typename T>
+    void store(AddressSize address, T value) {
+        CacheAddress Addr = {
+            .Tag = (uint8_t)((address >> 0x18) & 0xFF),
+            .Index = static_cast<uint32_t>(((address >> 0x10) & 0xFF) % 0x100),
+            .Offset = static_cast<uint32_t>(address & 0xFFFF),
+        };
+        CacheBlock *Block = CacheCheckHitMiss(Addr);
+        *(T *)(&Block->Data[Addr.Offset]) = value;
+        *(T *)(&this->memory_region[address]) = value;
+    }
     size_t get_size();
     size_t get_counter();
     size_t get_latency();
