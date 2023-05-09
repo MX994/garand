@@ -6,7 +6,9 @@
 #include "Processor.hpp"
 
 namespace Garand {
-void Processor::Tick() { Clock += 1; }
+void Processor::Tick() { 
+    Clock += 1; 
+}
 
 void Processor::Step() {
     bool NextStageIsFree = true;

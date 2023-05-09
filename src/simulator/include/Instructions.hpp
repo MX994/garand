@@ -94,6 +94,8 @@ namespace Garand {
             static Garand::InstructionWriteBack RotationalShiftRight(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs);
             static Garand::InstructionWriteBack RotationalShiftRightImmediate(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs);
             static Garand::InstructionWriteBack NOT(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs);
+            static Garand::InstructionWriteBack Call(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs);
+            static Garand::InstructionWriteBack Return(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t* regs);
     };
 
     enum DecodedInstruction {
@@ -167,6 +169,8 @@ namespace Garand {
         RSR,
         RSRI,
         NOT,
+        CALL,
+        RETURN,
         UNKNOWN,
     };
 

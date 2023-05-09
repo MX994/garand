@@ -1455,6 +1455,29 @@ Garand::InstructionSet::NOT(Garand::GarandInstruction instr,
     return wb;
 }
 
+Garand::InstructionWriteBack
+Garand::InstructionSet::Call(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t *regs) {
+    Garand::InstructionWriteBack Writeback;
+    uint32_t Address = instr.InstructionSpecific;
+    Garand::Registers *Regs = (Garand::Registers *)regs;
+    Regs->LinkRegister = Regs->ProgramCounter;
+    Writeback.write_back = true;
+    Writeback.reg = Garand::load_reg(regs, 33);
+    Writeback.value = Regs->ProgramCounter;
+    return Writeback;
+}
+
+Garand::InstructionWriteBack
+Garand::InstructionSet::Return(Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t *regs) {
+    Garand::InstructionWriteBack Writeback;
+    Garand::Registers *Regs = (Garand::Registers *)regs;
+    Writeback.write_back = true;
+    Writeback.reg = Garand::load_reg(regs, 35);
+    Writeback.value = Regs->LinkRegister;
+    Regs->LinkRegister = 0;
+    return Writeback;
+}
+
 char const *Garand::get_ins_mnemonic(Garand::GarandInstruction ins) {
     auto decoded_type = Garand::Instruction::Decode(ins);
     using Garand::DecodedInstruction;
@@ -1533,6 +1556,8 @@ char const *Garand::get_ins_mnemonic(Garand::GarandInstruction ins) {
         CASE_INS(RSR);
         CASE_INS(RSRI);
         CASE_INS(NOT);
+        CASE_INS(CALL);
+        CASE_INS(RETURN);
         CASE_INS(UNKNOWN);
     default:
         return "NOINFO";

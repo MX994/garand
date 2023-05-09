@@ -327,6 +327,10 @@ Garand::DecodedInstruction Garand::Instruction::Decode(Garand::GarandInstruction
                     return UNKNOWN;
             }
             return UNKNOWN;
+        case 0x10:
+            return CALL;
+        case 0x11:
+            return RETURN;
         default:
             return UNKNOWN;
     }
@@ -475,6 +479,10 @@ Garand::InstructionWriteBack Garand::Instruction::Execute(Garand::DecodedInstruc
             return Garand::InstructionSet::RotationalShiftRightImmediate(instr, mem, regs);
         case NOT:
             return Garand::InstructionSet::NOT(instr, mem, regs);
+        case CALL:
+            return Garand::InstructionSet::Call(instr, mem, regs);
+        case RETURN:
+            return Garand::InstructionSet::Return(instr, mem, regs);
         default:
             Garand:InstructionWriteBack wb;
             return wb;

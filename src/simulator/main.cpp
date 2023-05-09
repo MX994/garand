@@ -34,6 +34,7 @@ using namespace SDL2pp;
 
 static constexpr uint32_t SCREEN_WIDTH = 640;
 static constexpr uint32_t SCREEN_HEIGHT = 480;
+static constexpr uint16_t GPU_WIDTH = 128, GPU_HEIGHT = 64;
 static constexpr uint32_t framerate = 60;
 
 class MemoryPerf {
@@ -495,6 +496,9 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
         // Uncomment this to increase UI framerate
         // io.DeltaTime = 1.f / 2000.f;
         ImGui::StyleColorsDark();
+        for (int k = 0; k < SDL_GetNumVideoDrivers(); ++k) {        
+            std::cout << SDL_GetVideoDriver(k) << std::endl;
+        }
         ImGui_ImplSDL2_InitForSDLRenderer(window.Get(), renderer.Get());
         ImGui_ImplSDLRenderer_Init(renderer.Get());
         // Main loop
@@ -531,8 +535,8 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
             // Clear screen
             renderer.Clear();
 	        if (graphic_buffer) {
-                Texture sprite(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STATIC, 640, 480);
-                sprite.Update(NullOpt, graphic_buffer->get_raw() + 0x1000, 3);
+                Texture sprite(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STATIC, GPU_WIDTH, GPU_HEIGHT);
+                sprite.Update(NullOpt, graphic_buffer->get_raw() + 0x1000, GPU_WIDTH * 4);
                 renderer.Copy(sprite, NullOpt);
             }
 
@@ -541,7 +545,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
             renderer.Present();
 
             // Frame limiter
-            // SDL_Delay(1);
+            SDL_Delay(1);
         }
 
         // Here all resources are automatically released and library

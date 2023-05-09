@@ -41,7 +41,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
 
     Window window("garand", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                   SCREEN_WIDTH, SCREEN_HEIGHT,
-                  SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+                  SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL);
 
     // Create accelerated video renderer with default driver
     Renderer renderer{window, -1,
@@ -94,7 +94,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
       renderer.Present();
 
       // Frame limiter
-      SDL_Delay(1);
+      // SDL_Delay(1);
     }
 
     // Here all resources are automatically released and library
