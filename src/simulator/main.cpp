@@ -232,6 +232,8 @@ void instructionDemoWindow() {
     ImGui::End();
 }
 
+Garand::Memory *graphic_buffer = nullptr;
+
 void pipelineDemoWindow() {
     ImGui::Begin("Pipeline");
     static Garand::Processor cpu;
@@ -239,6 +241,9 @@ void pipelineDemoWindow() {
     static bool load_success = true;
     static char path[0x1000];
     constexpr auto value_step = 0;
+    if (graphic_buffer == nullptr) {
+        graphic_buffer = &memory;
+    }
 
     static Garand::AddressSize load_offset = 0;
     ImGui::InputScalar("Load Offset (0x)", ImGuiDataType_U32, &load_offset,
@@ -501,14 +506,15 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
                       SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 
         // Create accelerated video renderer with default driver
-        Renderer renderer{window, -1,
-                          SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED};
+        Renderer renderer{window, -1, SDL_RENDERER_ACCELERATED};
 
         // Checking
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO &io = ImGui::GetIO();
         (void)io;
+        // Uncomment this to increase UI framerate
+        // io.DeltaTime = 1.f / 2000.f;
         ImGui::StyleColorsDark();
         ImGui_ImplSDL2_InitForSDLRenderer(window.Get(), renderer.Get());
         ImGui_ImplSDLRenderer_Init(renderer.Get());
@@ -545,6 +551,11 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
 
             // Clear screen
             renderer.Clear();
+	        if (graphic_buffer) {
+                Texture sprite(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STATIC, 640, 480);
+                sprite.Update(NullOpt, graphic_buffer->get_raw() + 0x1000, 3);
+                renderer.Copy(sprite, NullOpt);
+            }
 
             // Show rendered frame
             ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
