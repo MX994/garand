@@ -36,4 +36,13 @@ namespace Garand {
     uint8_t *Memory::get_raw() {
         return this->memory_region.data();
     }
+
+    void Memory::invalidate() {
+        for (auto &block: this->Blocks) {
+            block.Valid = 0;
+        }
+    }
+    void Memory::invalidate_block(uint32_t index) {
+        this->Blocks[index].Valid = 0;
+    }
 }

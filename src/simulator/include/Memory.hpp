@@ -71,6 +71,8 @@ class Memory {
     size_t get_counter();
     size_t get_latency();
     uint8_t *get_raw();
+    void invalidate();
+    void invalidate_block(uint32_t);
 };
 
 }; // namespace Garand
