@@ -1,5 +1,3 @@
-#include <fmt/format.h>
-
 #include "Disassemble.hpp"
 #include "Instructions.hpp"
 
@@ -117,69 +115,3 @@ std::string disassemble(GarandInstruction ins) {
     }
 }
 } // namespace Garand
-
-template <> struct fmt::formatter<Garand::Parameter::Reg> {
-    constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) {
-        return ctx.end();
-    }
-    template <typename FormatContext>
-    auto format(const Garand::Parameter::Reg &instance, FormatContext &ctx) const
-        -> decltype(ctx.out()) {
-        auto &n = instance.N;
-        switch (n) {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-        case 5:
-        case 6:
-        case 7:
-        case 8:
-        case 9:
-        case 10:
-        case 11:
-        case 12:
-        case 13:
-        case 14:
-        case 15:
-            return fmt::format_to(ctx.out(), "R{}", n);
-        case 16:
-        case 17:
-        case 18:
-        case 19:
-        case 20:
-        case 21:
-        case 22:
-        case 23:
-        case 24:
-        case 25:
-        case 26:
-        case 27:
-        case 28:
-        case 29:
-        case 30:
-        case 31:
-            return fmt::format_to(ctx.out(), "I{}", n);
-        case 32:
-            return fmt::format_to(ctx.out(), "SP");
-        case 33:
-            return fmt::format_to(ctx.out(), "PC");
-        case 34:
-            return fmt::format_to(ctx.out(), "LR");
-        default:
-            return fmt::format_to(ctx.out(), "R?");
-        }
-    }
-};
-
-template <> struct fmt::formatter<Garand::Parameter::Imm> {
-    constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) {
-        return ctx.end();
-    }
-    template <typename FormatContext>
-    auto format(const Garand::Parameter::Imm &instance, FormatContext &ctx) const
-        -> decltype(ctx.out()) {
-        return fmt::format_to(ctx.out(), "#0x{:0x}", instance.N);
-    }
-};

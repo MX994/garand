@@ -31,7 +31,7 @@ namespace Garand {
     }
 
     size_t Memory::get_size() {
-        return this->size;
+        return this->memory_region.size();
     }
 
     size_t Memory::get_counter() {

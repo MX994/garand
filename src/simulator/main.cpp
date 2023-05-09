@@ -247,12 +247,16 @@ void pipelineDemoWindow() {
                              IM_ARRAYSIZE(path));
     ImGui::SameLine();
     if (ImGui::Button("Load")) {
-        auto fd = std::fstream(path, std::fstream::in);
-        load_success = fd.is_open();
-        if (fd.is_open()) {
-            fd.read(reinterpret_cast<char *>(memory.get_raw() + load_offset),
-                    memory.get_size());
+        auto fd = fopen(path, "rb");
+        load_success = !ferror(fd);
+        if (load_success) {
+            auto src = memory.get_raw() + load_offset;
+            auto read_size = memory.get_size() - load_offset;
+            fread(src, 1, read_size, fd);
+            // fmt::print("{:0x}\n", (uint64_t)&src);
             memory.invalidate();
+            // fd.close();
+            fclose(fd);
         }
     }
     if (!load_success) {
