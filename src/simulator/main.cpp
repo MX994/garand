@@ -1,9 +1,3 @@
-#include "Disassemble.hpp"
-#include "Instruction.hpp"
-#include "Instructions.hpp"
-#include "Memory.hpp"
-#include "Processor.hpp"
-#include "Registers.hpp"
 #include <SDL2pp/SDL2pp.hh>
 #include <algorithm>
 #include <exception>
@@ -19,6 +13,13 @@
 #include <string_view>
 #include <variant>
 #include <vector>
+
+#include "Disassemble.hpp"
+#include "Instruction.hpp"
+#include "Instructions.hpp"
+#include "Memory.hpp"
+#include "Processor.hpp"
+#include "Registers.hpp"
 
 namespace ImGui {
 #include <imgui_memory_editor.h>
@@ -221,8 +222,7 @@ void instructionDemoWindow() {
         auto &ins = asmline;
         auto decode = Garand::Instruction::Decode(ins);
         // Based on Serg change, regs must be uint64_t*
-        auto wb =
-            Garand::Instruction::Execute(decode, ins, mem, (uint64_t *)&regs);
+        auto wb = Garand::Instruction::Execute(decode, ins, mem, &regs);
         Garand::Instruction::WriteBack(wb, mem);
     }
     ImGui::SameLine();
@@ -250,8 +250,9 @@ void pipelineDemoWindow() {
         auto fd = std::fstream(path, std::fstream::in);
         load_success = fd.is_open();
         if (fd.is_open()) {
-            fd.read(reinterpret_cast<char *>(memory.get_raw()),
+            fd.read(reinterpret_cast<char *>(memory.get_raw() + load_offset),
                     memory.get_size());
+            memory.invalidate();
         }
     }
     if (!load_success) {
@@ -313,38 +314,34 @@ void pipelineDemoWindow() {
         ImGui::Text("(End of Program)");
     }
     ImGui::Text("Clock: %llu cycle(s)", cpu.ReadClock());
-    ImGui::Text("Fetch:");
-    ImGui::SameLine();
-    if (cpu.View()[0]) {
-        ImGui::Text("%s",
-                    Garand::disassemble(cpu.View()[0]->Instruction).c_str());
-    } else {
-        ImGui::Text("(Empty)");
-    }
-    ImGui::Text("Decode:");
-    ImGui::SameLine();
-    if (cpu.View()[1]) {
-        ImGui::Text("%s",
-                    Garand::disassemble(cpu.View()[1]->Instruction).c_str());
-    } else {
-        ImGui::Text("(Empty)");
-    }
-    ImGui::Text("Execute:");
-    ImGui::SameLine();
-    if (cpu.View()[2]) {
-        ImGui::Text("%s",
-                    Garand::disassemble(cpu.View()[2]->Instruction).c_str());
-    } else {
-        ImGui::Text("(Empty)");
-    }
-    ImGui::Text("Writeback:");
-    ImGui::SameLine();
-    if (cpu.View()[3]) {
-        ImGui::Text("%s",
-                    Garand::disassemble(cpu.View()[3]->Instruction).c_str());
-    } else {
-        ImGui::Text("(Empty)");
-    }
+
+    constexpr auto PipeView = [](char const* id, auto const src) {
+        if (ImGui::TreeNodeEx(id, ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (src) {
+                ImGui::Text("I: %s",
+                            Garand::disassemble(src->Instruction).c_str());
+                ImGui::Text("C: %llu", src->CycleCounter);
+                ImGui::Text("M: %s", fmt::format("{}", src->CycleNeeded).c_str());
+                ImGui::Text("P: %d", src->Processed);
+                auto &dec = src->decodedInstruction.parameter;
+                auto imm = dec.Immediate ? fmt::format("{}", *dec.Immediate) : std::string_view{"None"};
+                ImGui::Text("D: %s", fmt::format("{} | {}", dec.Registers, imm).c_str());
+            } else {
+                ImGui::Text("(Empty)");
+                ImGui::Text("(Empty)");
+                ImGui::Text("(Empty)");
+                ImGui::Text("(Empty)");
+                ImGui::Text("(Empty)");
+            }
+            ImGui::TreePop();
+        }
+
+    };
+
+    PipeView("Fetch", cpu.View()[0]);
+    PipeView("Decode", cpu.View()[1]);
+    PipeView("Execute", cpu.View()[2]);
+    PipeView("Write-back", cpu.View()[3]);
 
     static bool is_running = false;
     static std::set<Garand::AddressSize> breakpoints;

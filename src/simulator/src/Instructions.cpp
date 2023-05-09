@@ -5,9 +5,11 @@
 // #include <fmt/format.h>
 #include <tuple>
 
+namespace Garand {
+
 Garand::InstructionWriteBack
 Garand::InstructionSet::MemoryRead(Garand::GarandInstruction instr,
-                                   Garand::Memory &mem, uint64_t *regs) {
+                                   Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t imm_flag = (instr.InstructionSpecific >> 20) & 0b1;
@@ -23,11 +25,15 @@ Garand::InstructionSet::MemoryRead(Garand::GarandInstruction instr,
         auto *reg_src = Garand::load_reg(regs, src);
         auto *reg_offset = Garand::load_reg(regs, offset);
 
-        auto *addr = mem.load<Garand::LoadSize>(*reg_src + *reg_offset);
+        auto Addr = *reg_src + *reg_offset;
+        wb.execute_cost = mem.GetCacheCycle(Addr);
 
-        wb.value = *addr;
+        auto *real_addr = mem.load<Garand::LoadSize>(Addr);
+
+        wb.value = *real_addr;
     } else {
         uint16_t imm = instr.InstructionSpecific & 0x3FFF;
+        wb.execute_cost = mem.GetCacheCycle(imm);
         wb.value = *(mem.load<Garand::LoadSize>(imm));
     }
 
@@ -41,7 +47,7 @@ Garand::InstructionSet::MemoryRead(Garand::GarandInstruction instr,
 // instr_b.InstructionSpecific = 1 << 20 | 15 << 14 | 50;
 Garand::InstructionWriteBack
 Garand::InstructionSet::MemoryWrite(Garand::GarandInstruction instr,
-                                    Garand::Memory &mem, uint64_t *regs) {
+                                    Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
     wb.is_reg = false;
 
@@ -52,15 +58,15 @@ Garand::InstructionSet::MemoryWrite(Garand::GarandInstruction instr,
         uint8_t dest_index = (instr.InstructionSpecific >> 8) & 0b111111;
         uint8_t offset = (instr.InstructionSpecific >> 2) & 0b111111;
 
-        uint64_t *reg_src = Garand::load_reg(regs, src_index);
-        uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
-        uint64_t *reg_offset = Garand::load_reg(regs, offset);
+        RegisterSize *reg_src = Garand::load_reg(regs, src_index);
+        RegisterSize *reg_dest = Garand::load_reg(regs, dest_index);
+        RegisterSize *reg_offset = Garand::load_reg(regs, offset);
 
-        wb.reg = reinterpret_cast<uint64_t *>(*reg_dest + *reg_offset);
+        wb.reg = reinterpret_cast<RegisterSize *>(*reg_dest + *reg_offset);
         wb.value = *reg_src;
     } else {
         uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-        uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+        RegisterSize *reg_dest = Garand::load_reg(regs, dest_index);
 
         uint16_t imm = instr.InstructionSpecific & 0x3FFF;
 
@@ -73,7 +79,7 @@ Garand::InstructionSet::MemoryWrite(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::Bind(Garand::GarandInstruction instr,
-                             Garand::Memory &mem, uint64_t *regs) {
+                             Garand::Memory &mem, Registers *regs) {
     // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
     return wb;
@@ -81,7 +87,7 @@ Garand::InstructionSet::Bind(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::Unbind(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     // TODO: Implement Instruction
     Garand::InstructionWriteBack wb;
     return wb;
@@ -89,11 +95,11 @@ Garand::InstructionSet::Unbind(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BRUHCC_AL(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+    RegisterSize reg_dest = *(Garand::load_reg(regs, dest_index));
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
@@ -105,11 +111,11 @@ Garand::InstructionSet::BRUHCC_AL(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BRUHCC_EQ(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+    RegisterSize reg_dest = *(Garand::load_reg(regs, dest_index));
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
@@ -124,11 +130,11 @@ Garand::InstructionSet::BRUHCC_EQ(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BRUHCC_NE(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+    RegisterSize reg_dest = *(Garand::load_reg(regs, dest_index));
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
@@ -144,11 +150,11 @@ Garand::InstructionSet::BRUHCC_NE(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BRUHCC_LO(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+    RegisterSize reg_dest = *(Garand::load_reg(regs, dest_index));
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
@@ -164,11 +170,11 @@ Garand::InstructionSet::BRUHCC_LO(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BRUHCC_HS(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+    RegisterSize reg_dest = *(Garand::load_reg(regs, dest_index));
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
@@ -184,11 +190,11 @@ Garand::InstructionSet::BRUHCC_HS(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BRUHCC_LT(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+    RegisterSize reg_dest = *(Garand::load_reg(regs, dest_index));
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
@@ -204,11 +210,11 @@ Garand::InstructionSet::BRUHCC_LT(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BRUHCC_GE(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+    RegisterSize reg_dest = *(Garand::load_reg(regs, dest_index));
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
@@ -224,11 +230,11 @@ Garand::InstructionSet::BRUHCC_GE(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BRUHCC_HI(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+    RegisterSize reg_dest = *(Garand::load_reg(regs, dest_index));
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
@@ -244,11 +250,11 @@ Garand::InstructionSet::BRUHCC_HI(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BRUHCC_LS(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+    RegisterSize reg_dest = *(Garand::load_reg(regs, dest_index));
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
@@ -264,11 +270,11 @@ Garand::InstructionSet::BRUHCC_LS(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BRUHCC_GT(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+    RegisterSize reg_dest = *(Garand::load_reg(regs, dest_index));
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
@@ -285,11 +291,11 @@ Garand::InstructionSet::BRUHCC_GT(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BRUHCC_LE(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+    RegisterSize reg_dest = *(Garand::load_reg(regs, dest_index));
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
@@ -306,11 +312,11 @@ Garand::InstructionSet::BRUHCC_LE(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BRUHCC_VC(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+    RegisterSize reg_dest = *(Garand::load_reg(regs, dest_index));
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
@@ -326,11 +332,11 @@ Garand::InstructionSet::BRUHCC_VC(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BRUHCC_VS(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+    RegisterSize reg_dest = *(Garand::load_reg(regs, dest_index));
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
@@ -346,11 +352,11 @@ Garand::InstructionSet::BRUHCC_VS(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BRUHCC_PL(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+    RegisterSize reg_dest = *(Garand::load_reg(regs, dest_index));
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
@@ -366,11 +372,11 @@ Garand::InstructionSet::BRUHCC_PL(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BRUHCC_NG(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t reg_dest = *(Garand::load_reg(regs, dest_index));
+    RegisterSize reg_dest = *(Garand::load_reg(regs, dest_index));
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
@@ -386,7 +392,7 @@ Garand::InstructionSet::BRUHCC_NG(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BCC_AL(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     int8_t offset = instr.InstructionSpecific & 0xff;
@@ -401,7 +407,7 @@ Garand::InstructionSet::BCC_AL(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BCC_EQ(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     int8_t offset = instr.InstructionSpecific & 0xff;
@@ -420,7 +426,7 @@ Garand::InstructionSet::BCC_EQ(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BCC_NE(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     int8_t offset = instr.InstructionSpecific & 0xff;
@@ -439,7 +445,7 @@ Garand::InstructionSet::BCC_NE(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BCC_LO(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     int8_t offset = instr.InstructionSpecific & 0xff;
@@ -458,7 +464,7 @@ Garand::InstructionSet::BCC_LO(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BCC_HS(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     int8_t offset = instr.InstructionSpecific & 0xff;
@@ -477,7 +483,7 @@ Garand::InstructionSet::BCC_HS(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BCC_LT(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     int8_t offset = instr.InstructionSpecific & 0xff;
@@ -496,7 +502,7 @@ Garand::InstructionSet::BCC_LT(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BCC_GE(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     int8_t offset = instr.InstructionSpecific & 0xff;
@@ -515,7 +521,7 @@ Garand::InstructionSet::BCC_GE(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BCC_HI(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     int8_t offset = instr.InstructionSpecific & 0xff;
@@ -534,7 +540,7 @@ Garand::InstructionSet::BCC_HI(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BCC_LS(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     int8_t offset = instr.InstructionSpecific & 0xff;
@@ -553,7 +559,7 @@ Garand::InstructionSet::BCC_LS(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BCC_GT(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     int8_t offset = instr.InstructionSpecific & 0xff;
@@ -573,7 +579,7 @@ Garand::InstructionSet::BCC_GT(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BCC_LE(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     int8_t offset = instr.InstructionSpecific & 0xff;
@@ -593,7 +599,7 @@ Garand::InstructionSet::BCC_LE(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BCC_VC(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     int8_t offset = instr.InstructionSpecific & 0xff;
@@ -612,7 +618,7 @@ Garand::InstructionSet::BCC_VC(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BCC_VS(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     int8_t offset = instr.InstructionSpecific & 0xff;
@@ -631,7 +637,7 @@ Garand::InstructionSet::BCC_VS(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BCC_PL(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     int8_t offset = instr.InstructionSpecific & 0xff;
@@ -650,7 +656,7 @@ Garand::InstructionSet::BCC_PL(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::BCC_NG(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     int8_t offset = instr.InstructionSpecific & 0xff;
@@ -669,7 +675,7 @@ Garand::InstructionSet::BCC_NG(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::Add(Garand::GarandInstruction instr,
-                            Garand::Memory &mem, uint64_t *regs) {
+                            Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -678,8 +684,8 @@ Garand::InstructionSet::Add(Garand::GarandInstruction instr,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t *reg_src = (Garand::load_reg(regs, src));
-    uint64_t *reg_val = (Garand::load_reg(regs, val));
+    RegisterSize *reg_src = (Garand::load_reg(regs, src));
+    RegisterSize *reg_val = (Garand::load_reg(regs, val));
 
     wb.value = *reg_src + *reg_val;
 
@@ -688,14 +694,14 @@ Garand::InstructionSet::Add(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::AddImmediate(Garand::GarandInstruction instr,
-                                     Garand::Memory &mem, uint64_t *regs) {
+                                     Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+    RegisterSize *reg_dest = Garand::load_reg(regs, dest_index);
 
     uint8_t val_index = (instr.InstructionSpecific >> 8) & 0b111111;
-    uint64_t *val_reg = Garand::load_reg(regs, val_index);
+    RegisterSize *val_reg = Garand::load_reg(regs, val_index);
     auto val_1 = *val_reg;
 
     uint8_t imm = instr.InstructionSpecific & 0xFF;
@@ -708,7 +714,7 @@ Garand::InstructionSet::AddImmediate(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::FX_Add(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -717,8 +723,8 @@ Garand::InstructionSet::FX_Add(Garand::GarandInstruction instr,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t reg_src = *(Garand::load_reg(regs, src));
-    uint64_t reg_val = *(Garand::load_reg(regs, val));
+    RegisterSize reg_src = *(Garand::load_reg(regs, src));
+    RegisterSize reg_val = *(Garand::load_reg(regs, val));
 
     int r1_fractional = reg_src & 0x7FFFFF;
     int r1_exponent = (reg_src >> 23) & 0xFF;
@@ -752,7 +758,7 @@ Garand::InstructionSet::FX_Add(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::FX_AddImmediate(Garand::GarandInstruction instr,
-                                        Garand::Memory &mem, uint64_t *regs) {
+                                        Garand::Memory &mem, Registers *regs) {
     // TODO: Implement Instruction
     // Edit: Not doable since fixed point wont fit in immediate
     Garand::InstructionWriteBack wb;
@@ -761,7 +767,7 @@ Garand::InstructionSet::FX_AddImmediate(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::Subtract(Garand::GarandInstruction instr,
-                                 Garand::Memory &mem, uint64_t *regs) {
+                                 Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -770,8 +776,8 @@ Garand::InstructionSet::Subtract(Garand::GarandInstruction instr,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t *reg_src = (Garand::load_reg(regs, src));
-    uint64_t *reg_val = (Garand::load_reg(regs, val));
+    RegisterSize *reg_src = (Garand::load_reg(regs, src));
+    RegisterSize *reg_val = (Garand::load_reg(regs, val));
 
     wb.value = *reg_src - *reg_val;
 
@@ -780,14 +786,14 @@ Garand::InstructionSet::Subtract(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::SubtractImmediate(Garand::GarandInstruction instr,
-                                          Garand::Memory &mem, uint64_t *regs) {
+                                          Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+    RegisterSize *reg_dest = Garand::load_reg(regs, dest_index);
 
     uint8_t val_index = (instr.InstructionSpecific >> 8) & 0b111111;
-    uint64_t *val_reg = Garand::load_reg(regs, val_index);
+    RegisterSize *val_reg = Garand::load_reg(regs, val_index);
     auto val_1 = *val_reg;
 
     int imm = instr.InstructionSpecific & 0xFF;
@@ -798,7 +804,7 @@ Garand::InstructionSet::SubtractImmediate(Garand::GarandInstruction instr,
     return wb;
 }
 
-std::tuple<uint64_t, Garand::ConditionFlag> AddWithCarry(uint64_t x, uint64_t y, uint8_t carry) {
+std::tuple<uint64_t, Garand::ConditionFlag> AddWithCarry(RegisterSize x, RegisterSize y, uint8_t carry) {
     // Based on ARM Reference Manual - shared/functions/integer/AddWithCarry
     auto constexpr get_msb = [](auto val) -> uint8_t {
         return (val >> (sizeof(val) * 8 - 1)) & 1;
@@ -822,7 +828,7 @@ std::tuple<uint64_t, Garand::ConditionFlag> AddWithCarry(uint64_t x, uint64_t y,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::Compare(Garand::GarandInstruction instr,
-                                Garand::Memory &mem, uint64_t *regs) {
+                                Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
     wb.write_back = false;
 
@@ -840,12 +846,12 @@ Garand::InstructionSet::Compare(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::CompareImmediate(Garand::GarandInstruction instr,
-                                         Garand::Memory &mem, uint64_t *regs) {
+                                         Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
     wb.write_back = false;
 
     uint8_t r1 = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t imm = (instr.InstructionSpecific >> 2) & 0b111111111111;
+    RegisterSize imm = (instr.InstructionSpecific >> 2) & 0b111111111111;
 
     auto r1_val = *(Garand::load_reg(regs, r1));
 
@@ -857,7 +863,7 @@ Garand::InstructionSet::CompareImmediate(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::FX_Subtract(Garand::GarandInstruction instr,
-                                    Garand::Memory &mem, uint64_t *regs) {
+                                    Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -866,8 +872,8 @@ Garand::InstructionSet::FX_Subtract(Garand::GarandInstruction instr,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t reg_src = *(Garand::load_reg(regs, src));
-    uint64_t reg_val = *(Garand::load_reg(regs, val));
+    RegisterSize reg_src = *(Garand::load_reg(regs, src));
+    RegisterSize reg_val = *(Garand::load_reg(regs, val));
 
     int r1_fractional = reg_src & 0x7FFFFF;
     int r1_exponent = (reg_src >> 23) & 0xFF;
@@ -900,7 +906,7 @@ Garand::InstructionSet::FX_Subtract(Garand::GarandInstruction instr,
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::FX_SubtractImmediate(
-    Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t *regs) {
+    Garand::GarandInstruction instr, Garand::Memory &mem, Registers *regs) {
     // TODO: Implement Instruction
     // Edit: Not doable since fixed point wont fit in immediate
     Garand::InstructionWriteBack wb;
@@ -909,7 +915,7 @@ Garand::InstructionWriteBack Garand::InstructionSet::FX_SubtractImmediate(
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::Multiply(Garand::GarandInstruction instr,
-                                 Garand::Memory &mem, uint64_t *regs) {
+                                 Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -918,8 +924,8 @@ Garand::InstructionSet::Multiply(Garand::GarandInstruction instr,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t *reg_src = (Garand::load_reg(regs, src));
-    uint64_t *reg_val = (Garand::load_reg(regs, val));
+    RegisterSize *reg_src = (Garand::load_reg(regs, src));
+    RegisterSize *reg_val = (Garand::load_reg(regs, val));
 
     wb.value = *reg_src * *reg_val;
 
@@ -928,14 +934,14 @@ Garand::InstructionSet::Multiply(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::MultiplyImmediate(Garand::GarandInstruction instr,
-                                          Garand::Memory &mem, uint64_t *regs) {
+                                          Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+    RegisterSize *reg_dest = Garand::load_reg(regs, dest_index);
 
     uint8_t val_index = (instr.InstructionSpecific >> 8) & 0b111111;
-    uint64_t *val_reg = Garand::load_reg(regs, val_index);
+    RegisterSize *val_reg = Garand::load_reg(regs, val_index);
     auto val_1 = *val_reg;
 
     uint8_t imm = instr.InstructionSpecific & 0xFF;
@@ -948,7 +954,7 @@ Garand::InstructionSet::MultiplyImmediate(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::MultiplyAdd(Garand::GarandInstruction instr,
-                                    Garand::Memory &mem, uint64_t *regs) {
+                                    Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -957,9 +963,9 @@ Garand::InstructionSet::MultiplyAdd(Garand::GarandInstruction instr,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t *reg_dest = (Garand::load_reg(regs, dest));
-    uint64_t *reg_src = (Garand::load_reg(regs, src));
-    uint64_t *reg_val = (Garand::load_reg(regs, val));
+    RegisterSize *reg_dest = (Garand::load_reg(regs, dest));
+    RegisterSize *reg_src = (Garand::load_reg(regs, src));
+    RegisterSize *reg_val = (Garand::load_reg(regs, val));
 
     wb.value = *reg_dest + (*reg_src * *reg_val);
 
@@ -968,7 +974,7 @@ Garand::InstructionSet::MultiplyAdd(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::FX_Multiply(Garand::GarandInstruction instr,
-                                    Garand::Memory &mem, uint64_t *regs) {
+                                    Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -977,8 +983,8 @@ Garand::InstructionSet::FX_Multiply(Garand::GarandInstruction instr,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t reg_src = *(Garand::load_reg(regs, src));
-    uint64_t reg_val = *(Garand::load_reg(regs, val));
+    RegisterSize reg_src = *(Garand::load_reg(regs, src));
+    RegisterSize reg_val = *(Garand::load_reg(regs, val));
 
     int r1_fractional = reg_src & 0x7FFFFF;
     int r1_exponent = (reg_src >> 23) & 0xFF;
@@ -1011,7 +1017,7 @@ Garand::InstructionSet::FX_Multiply(Garand::GarandInstruction instr,
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::FX_MultiplyImmediate(
-    Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t *regs) {
+    Garand::GarandInstruction instr, Garand::Memory &mem, Registers *regs) {
     // TODO: Implement Instruction
     // Edit: Not doable since fixed point wont fit in immediate
     Garand::InstructionWriteBack wb;
@@ -1020,7 +1026,7 @@ Garand::InstructionWriteBack Garand::InstructionSet::FX_MultiplyImmediate(
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::FX_MultiplyAdd(Garand::GarandInstruction instr,
-                                       Garand::Memory &mem, uint64_t *regs) {
+                                       Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -1029,8 +1035,8 @@ Garand::InstructionSet::FX_MultiplyAdd(Garand::GarandInstruction instr,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t reg_src = *(Garand::load_reg(regs, src));
-    uint64_t reg_val = *(Garand::load_reg(regs, val));
+    RegisterSize reg_src = *(Garand::load_reg(regs, src));
+    RegisterSize reg_val = *(Garand::load_reg(regs, val));
 
     int r1_fractional = reg_src & 0x7FFFFF;
     int r1_exponent = (reg_src >> 23) & 0xFF;
@@ -1064,7 +1070,7 @@ Garand::InstructionSet::FX_MultiplyAdd(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::Divide(Garand::GarandInstruction instr,
-                               Garand::Memory &mem, uint64_t *regs) {
+                               Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -1073,8 +1079,8 @@ Garand::InstructionSet::Divide(Garand::GarandInstruction instr,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t *reg_src = (Garand::load_reg(regs, src));
-    uint64_t *reg_val = (Garand::load_reg(regs, val));
+    RegisterSize *reg_src = (Garand::load_reg(regs, src));
+    RegisterSize *reg_val = (Garand::load_reg(regs, val));
 
     wb.value = *reg_src - *reg_val;
 
@@ -1083,14 +1089,14 @@ Garand::InstructionSet::Divide(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::DivideImmediate(Garand::GarandInstruction instr,
-                                        Garand::Memory &mem, uint64_t *regs) {
+                                        Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+    RegisterSize *reg_dest = Garand::load_reg(regs, dest_index);
 
     uint8_t val_index = (instr.InstructionSpecific >> 8) & 0b111111;
-    uint64_t *val_reg = Garand::load_reg(regs, val_index);
+    RegisterSize *val_reg = Garand::load_reg(regs, val_index);
     auto val_1 = *val_reg;
 
     uint8_t imm = instr.InstructionSpecific & 0xFF;
@@ -1103,7 +1109,7 @@ Garand::InstructionSet::DivideImmediate(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::FX_Divide(Garand::GarandInstruction instr,
-                                  Garand::Memory &mem, uint64_t *regs) {
+                                  Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -1112,8 +1118,8 @@ Garand::InstructionSet::FX_Divide(Garand::GarandInstruction instr,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t reg_src = *(Garand::load_reg(regs, src));
-    uint64_t reg_val = *(Garand::load_reg(regs, val));
+    RegisterSize reg_src = *(Garand::load_reg(regs, src));
+    RegisterSize reg_val = *(Garand::load_reg(regs, val));
 
     int r1_fractional = reg_src & 0x7FFFFF;
     int r1_exponent = (reg_src >> 23) & 0xFF;
@@ -1145,7 +1151,7 @@ Garand::InstructionSet::FX_Divide(Garand::GarandInstruction instr,
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::FX_DivideImmediate(
-    Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t *regs) {
+    Garand::GarandInstruction instr, Garand::Memory &mem, Registers *regs) {
     // TODO: Implement Instruction
     // Edit: Not doable since fixed point wont fit in immediate
     Garand::InstructionWriteBack wb;
@@ -1154,7 +1160,7 @@ Garand::InstructionWriteBack Garand::InstructionSet::FX_DivideImmediate(
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::AND(Garand::GarandInstruction instr,
-                            Garand::Memory &mem, uint64_t *regs) {
+                            Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -1163,8 +1169,8 @@ Garand::InstructionSet::AND(Garand::GarandInstruction instr,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t *reg_src = (Garand::load_reg(regs, src));
-    uint64_t *reg_val = (Garand::load_reg(regs, val));
+    RegisterSize *reg_src = (Garand::load_reg(regs, src));
+    RegisterSize *reg_val = (Garand::load_reg(regs, val));
 
     wb.value = *reg_src & *reg_val;
 
@@ -1173,14 +1179,14 @@ Garand::InstructionSet::AND(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::ANDImmediate(Garand::GarandInstruction instr,
-                                     Garand::Memory &mem, uint64_t *regs) {
+                                     Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+    RegisterSize *reg_dest = Garand::load_reg(regs, dest_index);
 
     uint8_t val_index = (instr.InstructionSpecific >> 8) & 0b111111;
-    uint64_t *val_reg = Garand::load_reg(regs, val_index);
+    RegisterSize *val_reg = Garand::load_reg(regs, val_index);
 
     uint8_t imm = instr.InstructionSpecific & 0xFF;
 
@@ -1192,7 +1198,7 @@ Garand::InstructionSet::ANDImmediate(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::Test(Garand::GarandInstruction instr,
-                             Garand::Memory &mem, uint64_t *regs) {
+                             Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
     wb.write_back = false;
 
@@ -1216,7 +1222,7 @@ Garand::InstructionSet::Test(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::NAND(Garand::GarandInstruction instr,
-                             Garand::Memory &mem, uint64_t *regs) {
+                             Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -1225,8 +1231,8 @@ Garand::InstructionSet::NAND(Garand::GarandInstruction instr,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t *reg_src = (Garand::load_reg(regs, src));
-    uint64_t *reg_val = (Garand::load_reg(regs, val));
+    RegisterSize *reg_src = (Garand::load_reg(regs, src));
+    RegisterSize *reg_val = (Garand::load_reg(regs, val));
 
     wb.value = ~(*reg_src & *reg_val);
 
@@ -1235,14 +1241,14 @@ Garand::InstructionSet::NAND(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::NANDImmediate(Garand::GarandInstruction instr,
-                                      Garand::Memory &mem, uint64_t *regs) {
+                                      Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+    RegisterSize *reg_dest = Garand::load_reg(regs, dest_index);
 
     uint8_t val_index = (instr.InstructionSpecific >> 8) & 0b111111;
-    uint64_t *val_reg = Garand::load_reg(regs, val_index);
+    RegisterSize *val_reg = Garand::load_reg(regs, val_index);
 
     uint8_t imm = instr.InstructionSpecific & 0xFF;
 
@@ -1254,7 +1260,7 @@ Garand::InstructionSet::NANDImmediate(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::OR(Garand::GarandInstruction instr, Garand::Memory &mem,
-                           uint64_t *regs) {
+                           Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -1263,8 +1269,8 @@ Garand::InstructionSet::OR(Garand::GarandInstruction instr, Garand::Memory &mem,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t *reg_src = (Garand::load_reg(regs, src));
-    uint64_t *reg_val = (Garand::load_reg(regs, val));
+    RegisterSize *reg_src = (Garand::load_reg(regs, src));
+    RegisterSize *reg_val = (Garand::load_reg(regs, val));
 
     wb.value = *reg_src | *reg_val;
 
@@ -1273,14 +1279,14 @@ Garand::InstructionSet::OR(Garand::GarandInstruction instr, Garand::Memory &mem,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::ORImmediate(Garand::GarandInstruction instr,
-                                    Garand::Memory &mem, uint64_t *regs) {
+                                    Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+    RegisterSize *reg_dest = Garand::load_reg(regs, dest_index);
 
     uint8_t val_index = (instr.InstructionSpecific >> 8) & 0b111111;
-    uint64_t *val_reg = Garand::load_reg(regs, val_index);
+    RegisterSize *val_reg = Garand::load_reg(regs, val_index);
 
     uint8_t imm = instr.InstructionSpecific & 0xFF;
 
@@ -1292,7 +1298,7 @@ Garand::InstructionSet::ORImmediate(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::XOR(Garand::GarandInstruction instr,
-                            Garand::Memory &mem, uint64_t *regs) {
+                            Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -1301,8 +1307,8 @@ Garand::InstructionSet::XOR(Garand::GarandInstruction instr,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t *reg_src = (Garand::load_reg(regs, src));
-    uint64_t *reg_val = (Garand::load_reg(regs, val));
+    RegisterSize *reg_src = (Garand::load_reg(regs, src));
+    RegisterSize *reg_val = (Garand::load_reg(regs, val));
 
     wb.value = *reg_src ^ *reg_val;
 
@@ -1311,14 +1317,14 @@ Garand::InstructionSet::XOR(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::XORImmediate(Garand::GarandInstruction instr,
-                                     Garand::Memory &mem, uint64_t *regs) {
+                                     Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+    RegisterSize *reg_dest = Garand::load_reg(regs, dest_index);
 
     uint8_t val_index = (instr.InstructionSpecific >> 8) & 0b111111;
-    uint64_t *val_reg = Garand::load_reg(regs, val_index);
+    RegisterSize *val_reg = Garand::load_reg(regs, val_index);
 
     uint8_t imm = instr.InstructionSpecific & 0xFF;
 
@@ -1330,7 +1336,7 @@ Garand::InstructionSet::XORImmediate(Garand::GarandInstruction instr,
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::LogicalShiftLeft(Garand::GarandInstruction instr,
-                                         Garand::Memory &mem, uint64_t *regs) {
+                                         Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -1339,8 +1345,8 @@ Garand::InstructionSet::LogicalShiftLeft(Garand::GarandInstruction instr,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t *reg_src = (Garand::load_reg(regs, src));
-    uint64_t *reg_val = (Garand::load_reg(regs, val));
+    RegisterSize *reg_src = (Garand::load_reg(regs, src));
+    RegisterSize *reg_val = (Garand::load_reg(regs, val));
 
     wb.value = *reg_src << *reg_val;
 
@@ -1348,14 +1354,14 @@ Garand::InstructionSet::LogicalShiftLeft(Garand::GarandInstruction instr,
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::LogicalShiftLeftImmediate(
-    Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t *regs) {
+    Garand::GarandInstruction instr, Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+    RegisterSize *reg_dest = Garand::load_reg(regs, dest_index);
 
     uint8_t val_index = (instr.InstructionSpecific >> 8) & 0b111111;
-    uint64_t *val_reg = Garand::load_reg(regs, val_index);
+    RegisterSize *val_reg = Garand::load_reg(regs, val_index);
 
     uint8_t imm = instr.InstructionSpecific & 0xFF;
 
@@ -1367,7 +1373,7 @@ Garand::InstructionWriteBack Garand::InstructionSet::LogicalShiftLeftImmediate(
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::LogicalShiftRight(Garand::GarandInstruction instr,
-                                          Garand::Memory &mem, uint64_t *regs) {
+                                          Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -1376,8 +1382,8 @@ Garand::InstructionSet::LogicalShiftRight(Garand::GarandInstruction instr,
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t *reg_src = (Garand::load_reg(regs, src));
-    uint64_t *reg_val = (Garand::load_reg(regs, val));
+    RegisterSize *reg_src = (Garand::load_reg(regs, src));
+    RegisterSize *reg_val = (Garand::load_reg(regs, val));
 
     wb.value = *reg_src >> *reg_val;
 
@@ -1385,14 +1391,14 @@ Garand::InstructionSet::LogicalShiftRight(Garand::GarandInstruction instr,
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::LogicalShiftRightImmediate(
-    Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t *regs) {
+    Garand::GarandInstruction instr, Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest_index = (instr.InstructionSpecific >> 14) & 0b111111;
-    uint64_t *reg_dest = Garand::load_reg(regs, dest_index);
+    RegisterSize *reg_dest = Garand::load_reg(regs, dest_index);
 
     uint8_t val_index = (instr.InstructionSpecific >> 8) & 0b111111;
-    uint64_t *val_reg = Garand::load_reg(regs, val_index);
+    RegisterSize *val_reg = Garand::load_reg(regs, val_index);
 
     uint8_t imm = instr.InstructionSpecific & 0xFF;
 
@@ -1403,7 +1409,7 @@ Garand::InstructionWriteBack Garand::InstructionSet::LogicalShiftRightImmediate(
 }
 
 Garand::InstructionWriteBack Garand::InstructionSet::RotationalShiftRight(
-    Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t *regs) {
+    Garand::GarandInstruction instr, Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -1412,8 +1418,8 @@ Garand::InstructionWriteBack Garand::InstructionSet::RotationalShiftRight(
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = (instr.InstructionSpecific >> 2) & 0b111111;
 
-    uint64_t reg_src = *(Garand::load_reg(regs, src));
-    uint64_t reg_val = *(Garand::load_reg(regs, val));
+    RegisterSize reg_src = *(Garand::load_reg(regs, src));
+    RegisterSize reg_val = *(Garand::load_reg(regs, val));
 
     wb.value = (reg_src << reg_val) | (reg_src >> (sizeof(int) * 8) - reg_val);
 
@@ -1422,7 +1428,7 @@ Garand::InstructionWriteBack Garand::InstructionSet::RotationalShiftRight(
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::RotationalShiftRightImmediate(
-    Garand::GarandInstruction instr, Garand::Memory &mem, uint64_t *regs) {
+    Garand::GarandInstruction instr, Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -1431,7 +1437,7 @@ Garand::InstructionSet::RotationalShiftRightImmediate(
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
     uint8_t val = instr.InstructionSpecific & 0b11111111;
 
-    uint64_t reg_src = *(Garand::load_reg(regs, src));
+    RegisterSize reg_src = *(Garand::load_reg(regs, src));
 
     wb.value = (reg_src << val) | (reg_src >> (sizeof(int) * 8) - val);
 
@@ -1440,7 +1446,7 @@ Garand::InstructionSet::RotationalShiftRightImmediate(
 
 Garand::InstructionWriteBack
 Garand::InstructionSet::NOT(Garand::GarandInstruction instr,
-                            Garand::Memory &mem, uint64_t *regs) {
+                            Garand::Memory &mem, Registers *regs) {
     Garand::InstructionWriteBack wb;
 
     uint8_t dest = (instr.InstructionSpecific >> 14) & 0b111111;
@@ -1448,7 +1454,7 @@ Garand::InstructionSet::NOT(Garand::GarandInstruction instr,
 
     uint8_t src = (instr.InstructionSpecific >> 8) & 0b111111;
 
-    uint64_t *reg_src = (Garand::load_reg(regs, src));
+    RegisterSize *reg_src = (Garand::load_reg(regs, src));
 
     wb.value = ~(*reg_src);
 
@@ -1456,7 +1462,7 @@ Garand::InstructionSet::NOT(Garand::GarandInstruction instr,
 }
 
 char const *Garand::get_ins_mnemonic(Garand::GarandInstruction ins) {
-    auto decoded_type = Garand::Instruction::Decode(ins);
+    auto decoded_type = Garand::Instruction::DecodeMnemonic(ins);
     using Garand::DecodedInstruction;
 
 #define CASE_INS(MNEMONIC)                                                     \
@@ -1538,4 +1544,6 @@ char const *Garand::get_ins_mnemonic(Garand::GarandInstruction ins) {
         return "NOINFO";
     };
     return "ERR";
+}
+
 }

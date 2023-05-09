@@ -6,33 +6,39 @@
 #include "Processor.hpp"
 
 namespace Garand {
+
 void Processor::Tick() { Clock += 1; }
 
 void Processor::Step() {
     bool NextStageIsFree = true;
     for (int s = Stage::WRITE_BACK; s >= Stage::FETCH; --s) {
         if (Pipeline[s]) {
-            ++Pipeline[s]->CycleCount;
-            if (s == Stage::EXECUTE && Pipeline[s]->CycleMax[s] == 0) {
-                // This will modify the CycleMax
-                ExecuteMemload();
-            }
-            if (Pipeline[s]->CycleCount == Pipeline[s]->CycleMax[s]) {
+            if (!Pipeline[s]->Processed) {
+                std::optional<Cycle> res;
                 if (s == Stage::DECODE) {
-                    Decode();
+                    res = Decode();
                 } else if (s == Stage::EXECUTE) {
-                    Execute();
+                    res = Execute();
                 } else if (s == Stage::WRITE_BACK) {
-                    WriteBack();
+                    res = WriteBack();
+                }
+                if (res) {
+                    if (auto &cycle = Pipeline[s]->CycleNeeded[s]; cycle == 0) {
+                        cycle = *res;
+                    }
+                    Pipeline[s]->Processed = true;
                 }
             }
-            if (Pipeline[s]->CycleCount >= Pipeline[s]->CycleMax[s] &&
+            ++Pipeline[s]->CycleCounter;
+            if (Pipeline[s]->Processed &&
+                Pipeline[s]->CycleCounter >= Pipeline[s]->CycleNeeded[s] &&
                 NextStageIsFree) {
-                Pipeline[s]->CycleCount = 0;
+                Pipeline[s]->CycleCounter = 0;
+                Pipeline[s]->Processed = false;
                 if (s != Stage::WRITE_BACK) {
                     Pipeline[s + 1] = Pipeline[s];
                 }
-                Pipeline[s] = NULL;
+                Pipeline[s] = nullptr;
                 NextStageIsFree = true;
             } else {
                 NextStageIsFree = !Pipeline[s];
@@ -40,8 +46,14 @@ void Processor::Step() {
         } else {
             NextStageIsFree = true;
         }
-        if (!Pipeline[s] && s == Stage::FETCH) {
-            Fetch();
+    }
+    if (!Pipeline[Stage::FETCH]) {
+        if (auto res = Fetch(); res) {
+            if (auto &cycle = Pipeline[Stage::FETCH]->CycleNeeded[Stage::FETCH];
+                cycle == 0) {
+                cycle = *res;
+            }
+            Pipeline[Stage::FETCH]->Processed = true;
         }
     }
     Tick();
@@ -51,105 +63,89 @@ void Processor::Queue(GarandInstruction Inst) {
     InstructionWk Wk;
     Wk.Instruction = Inst;
     std::array<unsigned, 4> const CycleTime{1, 1, 1, 1};
-    std::transform(CycleTime.begin(), CycleTime.end(), Wk.CycleMax,
+    std::transform(CycleTime.begin(), CycleTime.end(), Wk.CycleNeeded,
                    [](unsigned x) { return x; });
-    Wk.CycleCount = 0;
+    Wk.CycleCounter = 0;
     InstructionQueue.push(Wk);
 }
 
-void Processor::Fetch() {
+std::optional<Cycle> Processor::Fetch() {
     if (!Pipeline[Stage::FETCH]) {
         if (InstructionQueue.empty()) {
+            auto cost = WkRAM.GetCacheCycle(WkRegs.ProgramCounter);
             auto &ins = *WkRAM.load<uint32_t>(WkRegs.ProgramCounter);
             InstructionWk Wk;
             Wk.Instruction = Instruction::Encode(ins);
-            std::array<unsigned, 4> const CycleTime{1, 1, 1, 1};
-            std::transform(CycleTime.begin(), CycleTime.end(), Wk.CycleMax,
-                           [](unsigned x) { return x; });
-            Wk.CycleCount = 0;
             Wk.Pointer = WkRegs.ProgramCounter;
             Pipeline[Stage::FETCH] = std::make_shared<InstructionWk>(Wk);
             WkRegs.ProgramCounter += 4;
+            return {cost};
         } else {
             Pipeline[Stage::FETCH] =
                 std::make_shared<InstructionWk>(InstructionQueue.front());
             InstructionQueue.pop();
         }
+        return {1};
     }
+    return std::nullopt;
 }
 
-void Processor::Decode() {
+std::optional<Cycle> Processor::Decode() {
     if (Pipeline[Stage::DECODE]) {
         Pipeline[Stage::DECODE]->decodedInstruction =
             Instruction::Decode(Pipeline[Stage::DECODE]->Instruction);
+        return {1};
     }
+    return std::nullopt;
 }
 
-void Processor::ExecuteMemload() {
-    auto ins = Pipeline[Stage::EXECUTE]->decodedInstruction;
-    if ((ins == Garand::DecodedInstruction::MREAD ||
-         ins == Garand::DecodedInstruction::MWRITE) &&
-        Pipeline[Stage::EXECUTE]->CycleMax[Stage::EXECUTE] == 0) {
-        // Memory reads and writes are a special case.
-
-        // Parse the arguments.
-        uint32_t Args =
-            Pipeline[Stage::EXECUTE]->Instruction.InstructionSpecific;
-        uint32_t BaseAddr = Args >> 8 & 0b111111;
-
-        // Just in case we want to work with these...
-        // Uncomment them :).
-
-        // uint32_t Shift = Args >> 2 & 0b111111;
-        // BaseAddr += Shift;
-
-        // Parse address.
-        CacheAddress Addr = {
-            .Tag = (uint8_t)((BaseAddr >> 0x18) & 0xFF),
-            .Index = ((BaseAddr >> 0x10) & 0xFF) % 0x100,
-            .Offset = BaseAddr & 0xFFFF,
-        };
-
-        Pipeline[Stage::EXECUTE]->CycleMax[Stage::EXECUTE] =
-            WkRAM.IsBlockInCache(Addr, &WkRAM.Blocks[Addr.Index])
-                ? CACHE_HIT_CYCLES
-                : CACHE_MISS_CYCLES;
-    }
-}
-
-void Processor::Execute() {
+std::optional<Cycle> Processor::Execute() {
     auto &ins = Pipeline[Stage::EXECUTE];
+    
     if (ins) {
+        if (auto &ahead = Pipeline[Stage::WRITE_BACK];
+            ahead && ahead->WriteBack.write_back) {
+            auto const &regs = ins->decodedInstruction.parameter.Registers;
+            for (auto const &reg: regs) {
+                if (load_reg(&WkRegs, reg) == ahead->WriteBack.reg) {
+                    return std::nullopt;
+                }
+            }
+
+        }
         auto write_back =
             Instruction::Execute(ins->decodedInstruction, ins->Instruction,
-                                 WkRAM, (uint64_t *)&WkRegs);
+                                 WkRAM, &WkRegs);
         ins->StagnatePCDiff = WkRegs.ProgramCounter - ins->Pointer;
         ins->WriteBack = write_back;
-        if (write_back.reg == &WkRegs.ProgramCounter) {
-            Flush(Stage::EXECUTE);
-        }
+        // if (write_back.reg == &WkRegs.ProgramCounter) {
+        //     Flush(Stage::EXECUTE);
+        // }
+        return {write_back.execute_cost};
     }
+    return std::nullopt;
 }
 
-void Processor::WriteBack() {
+std::optional<Cycle> Processor::WriteBack() {
     if (Pipeline[Stage::WRITE_BACK]) {
         auto &wb = Pipeline[Stage::WRITE_BACK]->WriteBack;
         auto &state = Pipeline[Stage::WRITE_BACK];
-        using Garand::DecodedInstruction;
-        constexpr std::array<DecodedInstruction, 15> rel_branch = {
+        constexpr std::array<DecodedMnemonic, 15> rel_branch = {
             BCC_AL, BCC_EQ, BCC_NE, BCC_LO, BCC_HS, BCC_LT, BCC_GE, BCC_HI,
             BCC_LS, BCC_GT, BCC_LE, BCC_VC, BCC_VS, BCC_PL, BCC_NG};
         if (std::binary_search(rel_branch.begin(), rel_branch.end(),
-                               state->decodedInstruction)) {
+                               state->decodedInstruction.mnemonic)) {
             // Since the write-back happens after PC is updated in Fetch stage
             // We has to fix by using the offset
             wb.value -= state->StagnatePCDiff;
         }
-        Garand::Instruction::WriteBack(wb, WkRAM);
+        auto cost = Instruction::WriteBack(wb, WkRAM);
         if (wb.reg == &WkRegs.ProgramCounter) {
             Flush(Stage::WRITE_BACK);
         }
+        return {cost};
     }
+    return std::nullopt;
 }
 
 void Processor::Flush(Stage current) {

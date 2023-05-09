@@ -4,10 +4,9 @@
 
 #ifndef GARAND_MEMORY_HPP
 #define GARAND_MEMORY_HPP
+#include "Registers.hpp"
 
 namespace Garand {
-using InstructionSize = uint32_t;
-using RegisterSize = uint64_t;
 using LoadSize = uint64_t;
 using AddressSize = uint32_t;
 constexpr uint16_t CACHE_BLOCK_COUNT = 0x100; // 2^8.
@@ -21,6 +20,8 @@ struct CacheAddress {
   uint32_t Index : 8;  // We have 2^8 lines.
   uint32_t Offset : 16; // Block size is 2^16.
 };
+
+CacheAddress toCacheAddress(AddressSize address);
 
 struct CacheBlock {
   // Each block is 64KB.
@@ -45,24 +46,18 @@ class Memory {
     };
     std::vector<CacheBlock> Blocks;
     CacheBlock *CacheCheckHitMiss(CacheAddress Addr);
+    bool IsCacheHit(AddressSize);
+    uint64_t GetCacheCycle(AddressSize);
     bool IsBlockInCache(CacheAddress Addr, CacheBlock *Block);
     template<typename T>
     T *load(AddressSize address) {
-        CacheAddress Addr = {
-            .Tag = (uint8_t)((address >> 0x18) & 0xFF),
-            .Index = static_cast<uint32_t>(((address >> 0x10) & 0xFF) % 0x100),
-            .Offset = static_cast<uint32_t>(address & 0xFFFF),
-        };
+        CacheAddress Addr = toCacheAddress(address);
         CacheBlock *Block = CacheCheckHitMiss(Addr);
         return reinterpret_cast<T *>(Block->Data + Addr.Offset);
     }
     template<typename T>
     void store(AddressSize address, T value) {
-        CacheAddress Addr = {
-            .Tag = (uint8_t)((address >> 0x18) & 0xFF),
-            .Index = static_cast<uint32_t>(((address >> 0x10) & 0xFF) % 0x100),
-            .Offset = static_cast<uint32_t>(address & 0xFFFF),
-        };
+        CacheAddress Addr = toCacheAddress(address);
         CacheBlock *Block = CacheCheckHitMiss(Addr);
         *(T *)(&Block->Data[Addr.Offset]) = value;
         *(T *)(&this->memory_region[address]) = value;

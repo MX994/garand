@@ -17,6 +17,15 @@ namespace Garand {
         return Block;
     }
 
+    bool Memory::IsCacheHit(AddressSize address) {
+        auto Addr = toCacheAddress(address);
+        return IsBlockInCache(Addr, &Blocks[Addr.Index]);
+    }
+
+    uint64_t Memory::GetCacheCycle(AddressSize address) {
+        return IsCacheHit(address) ? CACHE_HIT_CYCLES : CACHE_MISS_CYCLES;
+    }
+
     bool Memory::IsBlockInCache(CacheAddress Addr, CacheBlock *Block) {
         return Block->Tag == Addr.Tag && Block->Valid;
     }
@@ -45,4 +54,13 @@ namespace Garand {
     void Memory::invalidate_block(uint32_t index) {
         this->Blocks[index].Valid = 0;
     }
+
+    CacheAddress toCacheAddress(AddressSize address) {
+        return {
+            .Tag = (uint8_t)((address >> 0x18) & 0xFF),
+            .Index = static_cast<uint32_t>(((address >> 0x10) & 0xFF) % 0x100),
+            .Offset = static_cast<uint32_t>(address & 0xFFFF),
+        };
+    }
+
 }
