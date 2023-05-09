@@ -314,6 +314,10 @@ DecodedMnemonic Instruction::DecodeMnemonic(GarandInstruction instruction) {
             return UNKNOWN;
         }
         return UNKNOWN;
+    case 0x10:
+        return CALL;
+    case 0x11:
+        return RETURN;
     default:
         return UNKNOWN;
     }
@@ -463,6 +467,10 @@ InstructionWriteBack Instruction::Execute(DecodedInstruction decoded_instr,
         return InstructionSet::RotationalShiftRightImmediate(instr, mem, regs);
     case NOT:
         return InstructionSet::NOT(instr, mem, regs);
+    case CALL:
+        return InstructionSet::Call(instr, mem, regs);
+    case RETURN:
+        return InstructionSet::Return(instr, mem, regs);
     default:
         InstructionWriteBack wb;
         return wb;

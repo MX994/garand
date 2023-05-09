@@ -81,6 +81,7 @@ std::string disassemble(GarandInstruction ins) {
     case BCC_VS:
     case BCC_PL:
     case BCC_NG:
+    case CALL:
         return std::apply(
             [&](auto &&...args) {
                 return format("{} {}", get_ins_mnemonic(ins), args...);
@@ -101,6 +102,8 @@ std::string disassemble(GarandInstruction ins) {
                 return format("{} {}, {}", get_ins_mnemonic(ins), args...);
             },
             Reg1Imm1(raw));
+    case RETURN:
+        return format("{}", get_ins_mnemonic(ins));
     case FX_ADD:
     case FX_ADDI:
     case FX_SUB:

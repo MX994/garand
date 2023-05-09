@@ -17,14 +17,16 @@ git clone git@github.com:Tensor497/garand.git
 cd garand
 ```
 
-Afterwards, run the following command in your terminal:
+Afterwards, run the below commands depending on the system.
+
+### Windows
 ```
-vcpkg install imgui[sdl2-binding,sdl2-renderer-binding]
+vcpkg install fmt sdl2 sdl2-image sdl2-mixer imgui[sdl2-binding,sdl2-renderer-binding] sdl2pp
 ```
 
-If you are on Linux and are having issues with this command, try the following:
+### Linux
 ```
-vcpkg install "imgui[sdl2-binding,sdl2-renderer-binding]"
+vcpkg install fmt "sdl2[wayland,x11]" sdl2-image sdl2-mixer "imgui[sdl2-binding,sdl2-renderer-binding]" sdl2pp --recurse
 ```
 
 __Save the path that it gives you for `vcpkg`. It is important.__
@@ -32,13 +34,12 @@ __Save the path that it gives you for `vcpkg`. It is important.__
 Once you are done, make sure you are in the project root directory, and run the following command to build:
 ```
 cmake . -DCMAKE_TOOLCHAIN_FILE=`<vcpkg_path>`
-
 ```
 
 If you are using the CMake extension in Visual Studio Code, you can set the CMake settings as follows:
 ```JSON
 "cmake.configureSettings": {
-    "CMAKE_TOOLCHAIN_FILE" : "/opt/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    "CMAKE_TOOLCHAIN_FILE" : "<vcpkg_path>/scripts/buildsystems/vcpkg.cmake"
 },
 ```
 
