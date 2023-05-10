@@ -9,27 +9,27 @@
 namespace Garand {
 using LoadSize = uint64_t;
 using AddressSize = uint32_t;
-constexpr uint32_t CACHE_BLOCK_INDEX_BIT = 0x8;
-constexpr uint32_t CACHE_BLOCK_COUNT = 1 << CACHE_BLOCK_INDEX_BIT; // 2^8.
-constexpr uint32_t CACHE_BLOCK_OFFSET_BIT = 0x10;
-constexpr uint32_t CACHE_BLOCK_SIZE = 1 << CACHE_BLOCK_OFFSET_BIT; // 2 ^ 16.
-constexpr uint32_t CACHE_BLOCK_TAG_BIT =
+constexpr uint8_t CACHE_BLOCK_INDEX_BIT = 0x8;
+constexpr AddressSize CACHE_BLOCK_COUNT = 1ULL << CACHE_BLOCK_INDEX_BIT; // 2^8.
+constexpr uint8_t CACHE_BLOCK_OFFSET_BIT = 0x10;
+constexpr AddressSize CACHE_BLOCK_SIZE = 1ULL << CACHE_BLOCK_OFFSET_BIT; // 2 ^ 16.
+constexpr uint8_t CACHE_BLOCK_TAG_BIT =
     sizeof(AddressSize) * 8 - CACHE_BLOCK_OFFSET_BIT - CACHE_BLOCK_INDEX_BIT;
-constexpr uint32_t CACHE_BLOCK_TAG = 1 << CACHE_BLOCK_TAG_BIT;
+constexpr AddressSize CACHE_BLOCK_TAG = 1ULL << CACHE_BLOCK_TAG_BIT;
 constexpr uint32_t CACHE_MISS_CYCLES = 0x30;
 constexpr uint32_t CACHE_HIT_CYCLES = 0x5;
 
 struct CacheAddress {
-  uint32_t Tag : CACHE_BLOCK_TAG_BIT;     // :)
-  uint32_t Index : CACHE_BLOCK_INDEX_BIT;  // We have 2^8 lines.
-  uint32_t Offset : CACHE_BLOCK_OFFSET_BIT; // Block size is 2^16.
+  AddressSize Tag : CACHE_BLOCK_TAG_BIT;     // :)
+  AddressSize Index : CACHE_BLOCK_INDEX_BIT;  // We have 2^8 lines.
+  AddressSize Offset : CACHE_BLOCK_OFFSET_BIT; // Block size is 2^16.
 };
 
 CacheAddress toCacheAddress(AddressSize address);
 
 struct CacheBlock {
   // Each block is 64KB.
-  uint32_t Tag;
+  AddressSize Tag;
   bool Valid;
   uint8_t Data[CACHE_BLOCK_SIZE];
 };
@@ -70,7 +70,7 @@ class Memory {
     size_t get_latency();
     uint8_t *get_raw();
     void invalidate();
-    void invalidate_block(uint32_t);
+    void invalidate_block(AddressSize);
 };
 
 }; // namespace Garand

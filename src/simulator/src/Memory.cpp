@@ -46,16 +46,16 @@ void Memory::invalidate() {
         block.Valid = 0;
     }
 }
-void Memory::invalidate_block(uint32_t index) { this->Blocks[index].Valid = 0; }
+void Memory::invalidate_block(AddressSize index) { this->Blocks[index].Valid = 0; }
 
 CacheAddress toCacheAddress(AddressSize address) {
     return {
-        .Tag = static_cast<uint32_t>(
+        .Tag = static_cast<AddressSize>(
             (address >> (CACHE_BLOCK_INDEX_BIT + CACHE_BLOCK_OFFSET_BIT)) &
             (CACHE_BLOCK_TAG - 1)),
-        .Index = static_cast<uint32_t>(((address >> CACHE_BLOCK_OFFSET_BIT) &
+        .Index = static_cast<AddressSize>(((address >> CACHE_BLOCK_OFFSET_BIT) &
                                        (CACHE_BLOCK_COUNT - 1))),
-        .Offset = static_cast<uint32_t>(address & (CACHE_BLOCK_SIZE - 1)),
+        .Offset = static_cast<AddressSize>(address & (CACHE_BLOCK_SIZE - 1)),
     };
 }
 
