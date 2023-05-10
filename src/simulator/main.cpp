@@ -35,6 +35,7 @@ using namespace SDL2pp;
 
 static constexpr uint32_t SCREEN_WIDTH = 640;
 static constexpr uint32_t SCREEN_HEIGHT = 480;
+static constexpr uint16_t GPU_WIDTH = 128, GPU_HEIGHT = 64;
 static constexpr uint32_t framerate = 60;
 
 class MemoryPerf {
@@ -232,10 +233,13 @@ void instructionDemoWindow() {
     ImGui::End();
 }
 
+Garand::Memory *graphic_buffer = nullptr;
+
 void pipelineDemoWindow() {
     ImGui::Begin("Pipeline");
     static Garand::Processor cpu;
     auto &memory = cpu.ReadMem();
+    graphic_buffer = &memory;
     static bool load_success = true;
     static char path[0x1000];
     constexpr auto value_step = 0;
@@ -509,6 +513,9 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
         ImGuiIO &io = ImGui::GetIO();
         (void)io;
         ImGui::StyleColorsDark();
+        for (int k = 0; k < SDL_GetNumVideoDrivers(); ++k) {
+            fmt::print("Video driver found: {}\n", SDL_GetVideoDriver(k));
+        }
         ImGui_ImplSDL2_InitForSDLRenderer(window.Get(), renderer.Get());
         ImGui_ImplSDLRenderer_Init(renderer.Get());
         // Main loop
@@ -544,13 +551,18 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
 
             // Clear screen
             renderer.Clear();
+	        if (graphic_buffer) {
+                Texture sprite(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STATIC, GPU_WIDTH, GPU_HEIGHT);
+                sprite.Update(NullOpt, graphic_buffer->get_raw() + 0x1000, GPU_WIDTH * 4);
+                renderer.Copy(sprite, NullOpt);
+            }
 
             // Show rendered frame
             ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
             renderer.Present();
 
             // Frame limiter
-            // SDL_Delay(1);
+            SDL_Delay(1);
         }
 
         // Here all resources are automatically released and library
