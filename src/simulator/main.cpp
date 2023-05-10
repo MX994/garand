@@ -237,7 +237,7 @@ void pipelineDemoWindow() {
     static Garand::Processor cpu;
     auto &memory = cpu.ReadMem();
     static bool load_success = true;
-    static char path[0x100];
+    static char path[0x1000];
     constexpr auto value_step = 0;
 
     static Garand::AddressSize load_offset = 0;
@@ -247,7 +247,8 @@ void pipelineDemoWindow() {
                              IM_ARRAYSIZE(path));
     ImGui::SameLine();
     if (ImGui::Button("Load")) {
-        auto fd = fopen(path, "rb");
+        FILE *fd = nullptr;
+        (void)fopen_s(&fd, path, "rb");
         load_success = !ferror(fd);
         if (load_success) {
             auto src = memory.get_raw() + load_offset;
@@ -307,6 +308,13 @@ void pipelineDemoWindow() {
     ImGui::Begin("Register Table");
     drawRegTable("pipdemo_reg_table", regs);
     ImGui::End();
+    static auto is_skipping = false;
+    static auto skip_count = 1;
+    ImGui::Checkbox("Turn on Skipping", &is_skipping);
+    if (is_skipping) {
+        ImGui::SameLine();
+        ImGui::InputInt("count", &skip_count);
+    }
     ImGui::Text("PC: 0x%llX", regs.ProgramCounter);
     if (regs.ProgramCounter + 4 <= memory.get_size()) {
         auto &raw_load = *reinterpret_cast<uint32_t *>(memory.get_raw() +
@@ -319,17 +327,22 @@ void pipelineDemoWindow() {
     }
     ImGui::Text("Clock: %llu cycle(s)", cpu.ReadClock());
 
-    constexpr auto PipeView = [](char const* id, auto const src) {
+    constexpr auto PipeView = [](char const *id, auto const src) {
         if (ImGui::TreeNodeEx(id, ImGuiTreeNodeFlags_DefaultOpen)) {
             if (src) {
                 ImGui::Text("I: %s",
                             Garand::disassemble(src->Instruction).c_str());
                 ImGui::Text("C: %llu", src->CycleCounter);
-                ImGui::Text("M: %s", fmt::format("{}", src->CycleNeeded).c_str());
+                ImGui::Text("M: %s",
+                            fmt::format("{}", src->CycleNeeded).c_str());
                 ImGui::Text("P: %d", src->Processed);
                 auto &dec = src->decodedInstruction.parameter;
-                auto imm = dec.Immediate ? fmt::format("{}", *dec.Immediate) : std::string_view{"None"};
-                ImGui::Text("D: %s", fmt::format("{} | {}", dec.Registers, imm).c_str());
+                auto imm =
+                    dec.Immediate
+                        ? fmt::format("{}", (uint64_t)*dec.Immediate).c_str()
+                        : std::string_view{"None"}.data();
+                ImGui::Text("D: %s | %s",
+                            fmt::format("{}", dec.Registers).c_str(), imm);
             } else {
                 ImGui::Text("(Empty)");
                 ImGui::Text("(Empty)");
@@ -339,7 +352,6 @@ void pipelineDemoWindow() {
             }
             ImGui::TreePop();
         }
-
     };
 
     PipeView("Fetch", cpu.View()[0]);
@@ -366,15 +378,23 @@ void pipelineDemoWindow() {
         is_running = !is_running;
     }
     static bool is_bp_hit = false;
-    auto exec_pc = cpu.ReadExecPC();
-    if (!is_bp_hit && exec_pc != 0 && breakpoints.count(exec_pc)) {
+    static 
+    auto execpc = cpu.ReadExecPC();
+    is_bp_hit = (!is_bp_hit) && breakpoints.count(execpc);
+    if (is_bp_hit) {
         is_running = false;
-        is_bp_hit = true;
-    } else {
-        is_bp_hit = false;
     }
     if (is_running) {
         cpu.Step();
+    }
+    for (auto i = 0; is_running && is_skipping && i < skip_count; ++i) {
+        is_bp_hit = (!is_bp_hit) && breakpoints.count(cpu.ReadExecPC());
+        if (is_bp_hit) {
+            is_running = false;
+        }
+        if (is_running) {
+            cpu.Step();
+        }
     }
     ImGui::SameLine();
     if (ImGui::Button("Step")) {
@@ -403,7 +423,7 @@ void disassemblerDemoWindow() {
     static std::vector<uint8_t> mem(0x10000);
     static ImGui::MemoryEditor mem_edit;
     static std::string buffer;
-    static char path[0x100];
+    static char path[0x1000];
     static bool load_success = true;
     if (ImGui::Button("Reset")) {
         mem.clear();
