@@ -235,6 +235,33 @@ void instructionDemoWindow() {
 
 Garand::Memory *graphic_buffer = nullptr;
 
+constexpr void PipeView(char const *id, auto const src) {
+    if (ImGui::TreeNodeEx(id, ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (src) {
+            ImGui::Text("I: %s",
+                        Garand::disassemble(src->Instruction).c_str());
+            ImGui::Text("C: %llu", src->CycleCounter);
+            ImGui::Text("M: %s",
+                        fmt::format("{}", src->CycleNeeded).c_str());
+            ImGui::Text("P: %d", src->Processed);
+            auto &dec = src->decodedInstruction.parameter;
+            auto imm =
+                dec.Immediate
+                    ? fmt::format("{}", (uint64_t)*dec.Immediate).c_str()
+                    : std::string_view{"None"}.data();
+            ImGui::Text("D: %s | %s",
+                        fmt::format("{}", dec.Registers).c_str(), imm);
+        } else {
+            ImGui::Text("(Empty)");
+            ImGui::Text("(Empty)");
+            ImGui::Text("(Empty)");
+            ImGui::Text("(Empty)");
+            ImGui::Text("(Empty)");
+        }
+        ImGui::TreePop();
+    }
+};
+
 void pipelineDemoWindow() {
     ImGui::Begin("Pipeline");
     static Garand::Processor cpu;
@@ -268,38 +295,6 @@ void pipelineDemoWindow() {
         ImGui::TextColored(ImVec4(1.f, 160.f / 255, 122.f / 255, 1.f),
                            "(Failed)");
     }
-    // if (ImGui::BeginListBox("AssemblyPipeline")) {
-    //     for (auto n = 0U; n < asm_input.size(); ++n) {
-    //         const bool is_selected = (asm_input_idx == n);
-    //         const bool is_next_execution = (next_execution == n);
-    //         const auto mne = Garand::disassemble(asm_input[n]);
-    //         if (ImGui::Selectable(fmt::format("##{0}", mne).c_str(),
-    //                               is_selected)) {
-    //             asm_input_idx = n;
-    //         }
-    //         ImGui::SameLine();
-    //         if (is_next_execution) {
-    //             ImGui::TextColored(ImVec4(0.533f, 0.929f, 1.0f, 1.0f), "%s",
-    //                                mne.c_str());
-    //         } else {
-    //             ImGui::Text("%s", mne.c_str());
-    //         }
-    //         // Set the initial focus when opening the combo (scrolling +
-    //         // keyboard navigation focus)
-    //         if (is_selected)
-    //             ImGui::SetItemDefaultFocus();
-    //     }
-    //     ImGui::EndListBox();
-    // }
-    // static uint32_t raw = 0;
-    // ImGui::Text("New instruction");
-    // ImGui::InputScalar("INS", ImGuiDataType_U32, &raw, &value_step,
-    // &value_step,
-    //                    "%lX");
-    // if (ImGui::Button("Add")) {
-    //     auto const inst = Garand::Instruction::Encode(raw);
-    //     asm_input.push_back(inst);
-    // }
 
     cacheMemWindow(memory);
     ImGui::Begin("Memory View");
@@ -337,33 +332,6 @@ void pipelineDemoWindow() {
     }
     ImGui::Text("Clock: %llu cycle(s)", cpu.ReadClock());
 
-    constexpr auto PipeView = [](char const *id, auto const src) {
-        if (ImGui::TreeNodeEx(id, ImGuiTreeNodeFlags_DefaultOpen)) {
-            if (src) {
-                ImGui::Text("I: %s",
-                            Garand::disassemble(src->Instruction).c_str());
-                ImGui::Text("C: %llu", src->CycleCounter);
-                ImGui::Text("M: %s",
-                            fmt::format("{}", src->CycleNeeded).c_str());
-                ImGui::Text("P: %d", src->Processed);
-                auto &dec = src->decodedInstruction.parameter;
-                auto imm =
-                    dec.Immediate
-                        ? fmt::format("{}", (uint64_t)*dec.Immediate).c_str()
-                        : std::string_view{"None"}.data();
-                ImGui::Text("D: %s | %s",
-                            fmt::format("{}", dec.Registers).c_str(), imm);
-            } else {
-                ImGui::Text("(Empty)");
-                ImGui::Text("(Empty)");
-                ImGui::Text("(Empty)");
-                ImGui::Text("(Empty)");
-                ImGui::Text("(Empty)");
-            }
-            ImGui::TreePop();
-        }
-    };
-
     PipeView("Fetch", cpu.View()[0]);
     PipeView("Decode", cpu.View()[1]);
     PipeView("Execute", cpu.View()[2]);
@@ -388,7 +356,6 @@ void pipelineDemoWindow() {
         is_running = !is_running;
     }
     static bool is_bp_hit = false;
-    static 
     auto execpc = cpu.ReadExecPC();
     is_bp_hit = (!is_bp_hit) && breakpoints.count(execpc);
     if (is_bp_hit) {
@@ -408,21 +375,17 @@ void pipelineDemoWindow() {
     }
     ImGui::SameLine();
     if (ImGui::Button("Step")) {
-        // if (next_execution < asm_input.size()) {
-        //     auto ins = asm_input[next_execution];
-        //     cpu.Queue(ins);
-        //     ++next_execution;
-        // }
         cpu.Step();
     }
     if (ImGui::Button("Reset Register")) {
         cpu.ResetRegs();
     }
     ImGui::SameLine();
-    if (ImGui::Button("Reset Cursor")) {
+    if (ImGui::Button("Reset PC")) {
+        cpu.WkRegs.ProgramCounter = 0;
     }
     ImGui::SameLine();
-    if (ImGui::Button("Reset Scratchpad")) {
+    if (ImGui::Button("Reset Processor")) {
         cpu = Garand::Processor();
     }
     ImGui::End();
@@ -475,6 +438,7 @@ void debuggui() {
     static bool show_instruction_demo_window = false;
     static bool show_pipeline_demo_window = false;
     static bool show_disasm_demo_window = false;
+    static bool show_simulator_window = false;
     if (show_demo_window) {
         ImGui::ShowDemoWindow(&show_demo_window);
     }
@@ -490,6 +454,9 @@ void debuggui() {
     if (show_disasm_demo_window) {
         disassemblerDemoWindow();
     }
+    if (show_simulator_window) {
+        // simulatorWindow();
+    }
     // Edit bools storing our window open/close state
     ImGui::Begin("Control UI");
     ImGui::Checkbox("Demo Window", &show_demo_window);
@@ -497,6 +464,7 @@ void debuggui() {
     ImGui::Checkbox("Instruction Demo", &show_instruction_demo_window);
     ImGui::Checkbox("Pipeline Demo", &show_pipeline_demo_window);
     ImGui::Checkbox("Disassembler Demo", &show_disasm_demo_window);
+    ImGui::Checkbox("Simulator", &show_simulator_window);
     ImGui::End();
 }
 
