@@ -26,9 +26,10 @@ Garand::InstructionSet::MemoryRead(Garand::GarandInstruction instr,
         auto *reg_offset = Garand::load_reg(regs, offset);
 
         auto Addr = *reg_src + *reg_offset;
-        wb.execute_cost = mem.GetCacheCycle(Addr);
+        wb.execute_cost = mem.GetCacheCycle(static_cast<AddressSize>(Addr));
 
-        auto *real_addr = mem.load<Garand::LoadSize>(Addr);
+        auto *real_addr =
+            mem.load<Garand::LoadSize>(static_cast<AddressSize>(Addr));
 
         wb.value = *real_addr;
     } else {
@@ -1421,7 +1422,7 @@ Garand::InstructionWriteBack Garand::InstructionSet::RotationalShiftRight(
     RegisterSize reg_src = *(Garand::load_reg(regs, src));
     RegisterSize reg_val = *(Garand::load_reg(regs, val));
 
-    wb.value = (reg_src << reg_val) | (reg_src >> (sizeof(int) * 8) - reg_val);
+    wb.value = (reg_src << reg_val) | (reg_src >> (sizeof(reg_src) * 8 - reg_val));
 
     return wb;
 }
@@ -1439,7 +1440,7 @@ Garand::InstructionSet::RotationalShiftRightImmediate(
 
     RegisterSize reg_src = *(Garand::load_reg(regs, src));
 
-    wb.value = (reg_src << val) | (reg_src >> (sizeof(int) * 8) - val);
+    wb.value = (reg_src << val) | (reg_src >> (sizeof(reg_src) * 8 - val));
 
     return wb;
 }

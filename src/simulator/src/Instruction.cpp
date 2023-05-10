@@ -464,7 +464,6 @@ InstructionWriteBack Instruction::Execute(DecodedInstruction decoded_instr,
     case NOT:
         return InstructionSet::NOT(instr, mem, regs);
     default:
-    Garand:
         InstructionWriteBack wb;
         return wb;
     }
@@ -475,7 +474,8 @@ uint64_t Instruction::WriteBack(InstructionWriteBack write_back, Memory &mem) {
         if (write_back.is_reg) {
             *(write_back.reg) = write_back.value;
         } else {
-            AddressSize Addr = reinterpret_cast<uint64_t>(write_back.reg);
+            auto Addr = static_cast<AddressSize>(
+                reinterpret_cast<uint64_t>(write_back.reg));
             auto cost = mem.GetCacheCycle(Addr);
             mem.store(Addr, write_back.value);
             return cost;

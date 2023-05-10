@@ -72,11 +72,12 @@ void Processor::Queue(GarandInstruction Inst) {
 std::optional<Cycle> Processor::Fetch() {
     if (!Pipeline[Stage::FETCH]) {
         if (InstructionQueue.empty()) {
-            auto cost = WkRAM.GetCacheCycle(WkRegs.ProgramCounter);
-            auto &ins = *WkRAM.load<uint32_t>(WkRegs.ProgramCounter);
+            auto pc = static_cast<AddressSize>(WkRegs.ProgramCounter);
+            auto cost = WkRAM.GetCacheCycle(pc);
+            auto &ins = *WkRAM.load<uint32_t>(pc);
             InstructionWk Wk;
             Wk.Instruction = Instruction::Encode(ins);
-            Wk.Pointer = WkRegs.ProgramCounter;
+            Wk.Pointer = static_cast<AddressSize>(WkRegs.ProgramCounter);
             Pipeline[Stage::FETCH] = std::make_shared<InstructionWk>(Wk);
             WkRegs.ProgramCounter += 4;
             return {cost};
@@ -113,10 +114,10 @@ std::optional<Cycle> Processor::Execute() {
             }
 
         }
-        auto write_back =
-            Instruction::Execute(ins->decodedInstruction, ins->Instruction,
-                                 WkRAM, &WkRegs);
-        ins->StagnatePCDiff = WkRegs.ProgramCounter - ins->Pointer;
+        auto write_back = Instruction::Execute(
+            ins->decodedInstruction, ins->Instruction, WkRAM, &WkRegs);
+        ins->StagnatePCDiff =
+            static_cast<AddressSize>(WkRegs.ProgramCounter - ins->Pointer);
         ins->WriteBack = write_back;
         // if (write_back.reg == &WkRegs.ProgramCounter) {
         //     Flush(Stage::EXECUTE);
