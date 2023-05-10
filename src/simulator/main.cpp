@@ -318,6 +318,7 @@ void pipelineDemoWindow() {
         ImGui::SameLine();
         ImGui::InputInt("count", &skip_count);
     }
+    ImGui::Checkbox("Pipeline", &cpu.pipeline);
     ImGui::Text("PC: 0x%llX", regs.ProgramCounter);
     if (regs.ProgramCounter + 4 <= memory.get_size()) {
         auto &raw_load = *reinterpret_cast<uint32_t *>(memory.get_raw() +

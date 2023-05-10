@@ -70,6 +70,13 @@ void Processor::Queue(GarandInstruction Inst) {
 }
 
 std::optional<Cycle> Processor::Fetch() {
+    auto is_occupied = false;
+    for (auto i = 0; i <= Stage::WRITE_BACK; ++i) {
+        is_occupied |= !!Pipeline[i];
+    }
+    if (!pipeline && is_occupied) {
+        return std::nullopt;
+    }
     if (!Pipeline[Stage::FETCH]) {
         if (InstructionQueue.empty()) {
             auto pc = static_cast<AddressSize>(WkRegs.ProgramCounter);
