@@ -247,8 +247,7 @@ void pipelineDemoWindow() {
                              IM_ARRAYSIZE(path));
     ImGui::SameLine();
     if (ImGui::Button("Load")) {
-        FILE *fd = nullptr;
-        (void)fopen_s(&fd, path, "rb");
+        FILE *fd = fopen(path, "rb");
         load_success = !ferror(fd);
         if (load_success) {
             auto src = memory.get_raw() + load_offset;
