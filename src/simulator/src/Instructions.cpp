@@ -1485,7 +1485,7 @@ Garand::InstructionSet::Return(Garand::GarandInstruction instr,
     return Writeback;
 }
 
-char const *Garand::get_ins_mnemonic(Garand::GarandInstruction ins) {
+char const *get_ins_mnemonic(Garand::GarandInstruction ins) {
     auto decoded_type = Garand::Instruction::DecodeMnemonic(ins);
     using Garand::DecodedInstruction;
 
