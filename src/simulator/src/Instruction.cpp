@@ -489,10 +489,10 @@ DecodedParameter Instruction::DecodeParameter(GarandInstruction instr,
     auto raw = instr.InstructionSpecific;
     constexpr auto convert = [](auto &&...args) -> DecodedParameter {
         DecodedParameter param;
-        static const auto push = [&param](auto const v) {
-            if constexpr (std::is_same<decltype(v), Parameter::Reg>::value) {
+        static const auto push = [&param]<typename T>(T v) {
+            if constexpr (std::is_same_v<T, Parameter::Reg>) {
                 param.Registers.push_back(v.N);
-            } else if constexpr (std::is_same<decltype(v), Parameter::Imm>::value) {
+            } else if constexpr (std::is_same_v<T, Parameter::Imm>) {
                 param.Immediate = v.N;
             }
         };

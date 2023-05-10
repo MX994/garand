@@ -57,6 +57,10 @@ namespace Garand {
       decltype(Clock) ReadClock();
       Memory& ReadMem();
       AddressSize ReadExecPC();
+      // By default, this processor implement Pipeline.
+      // Set this to Off to disable pipeline,
+      // where Fetch only works when the pipeline is empty
+      bool pipeline = true;
   };
 } // namespace Garand
 

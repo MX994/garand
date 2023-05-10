@@ -35,6 +35,7 @@ using namespace SDL2pp;
 
 static constexpr uint32_t SCREEN_WIDTH = 640;
 static constexpr uint32_t SCREEN_HEIGHT = 480;
+static constexpr uint16_t GPU_WIDTH = 128, GPU_HEIGHT = 64;
 static constexpr uint32_t framerate = 60;
 
 class MemoryPerf {
@@ -71,6 +72,12 @@ void cacheMemWindow(Garand::Memory &mem) {
     ImGui::Begin("Cache view");
     static int block_id = 0;
     ImGui::InputInt("Block", &block_id);
+    if (block_id >= Garand::CACHE_BLOCK_COUNT) {
+        block_id = Garand::CACHE_BLOCK_COUNT - 1;
+    }
+    if (block_id < 0) {
+        block_id = 0;
+    }
 
     static ImGui::MemoryEditor mem_edit;
     auto *block = &mem.Blocks[block_id];
@@ -232,6 +239,35 @@ void instructionDemoWindow() {
     ImGui::End();
 }
 
+Garand::Memory *graphic_buffer = nullptr;
+
+constexpr void PipeView(char const *id, auto const src) {
+    if (ImGui::TreeNodeEx(id, ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (src) {
+            ImGui::Text("I: %s", Garand::disassemble(src->Instruction).c_str());
+            ImGui::Text("C: %llu", src->CycleCounter);
+            ImGui::Text("M: %s", fmt::format("{}", src->CycleNeeded).c_str());
+            ImGui::Text("P: %d", src->Processed);
+            auto dec = src->decodedInstruction.parameter;
+            ImGui::Text("D: %s", fmt::format("{}", dec.Registers).c_str());
+            if (dec.Immediate) {
+                ImGui::SameLine();
+                ImGui::Text("| %s", fmt::format("{}", *dec.Immediate).c_str());
+            } else {
+                ImGui::SameLine();
+                ImGui::Text("| None");
+            }
+        } else {
+            ImGui::Text("(Empty)");
+            ImGui::Text("(Empty)");
+            ImGui::Text("(Empty)");
+            ImGui::Text("(Empty)");
+            ImGui::Text("(Empty)");
+        }
+        ImGui::TreePop();
+    }
+};
+
 void pipelineDemoWindow() {
     ImGui::Begin("Pipeline");
     static Garand::Processor cpu;
@@ -247,16 +283,13 @@ void pipelineDemoWindow() {
                              IM_ARRAYSIZE(path));
     ImGui::SameLine();
     if (ImGui::Button("Load")) {
-        FILE *fd = nullptr;
-        (void)fopen_s(&fd, path, "rb");
+        FILE *fd = fopen(path, "rb");
         load_success = !ferror(fd);
         if (load_success) {
             auto src = memory.get_raw() + load_offset;
             auto read_size = memory.get_size() - load_offset;
             fread(src, 1, read_size, fd);
-            // fmt::print("{:0x}\n", (uint64_t)&src);
             memory.invalidate();
-            // fd.close();
             fclose(fd);
         }
     }
@@ -265,38 +298,6 @@ void pipelineDemoWindow() {
         ImGui::TextColored(ImVec4(1.f, 160.f / 255, 122.f / 255, 1.f),
                            "(Failed)");
     }
-    // if (ImGui::BeginListBox("AssemblyPipeline")) {
-    //     for (auto n = 0U; n < asm_input.size(); ++n) {
-    //         const bool is_selected = (asm_input_idx == n);
-    //         const bool is_next_execution = (next_execution == n);
-    //         const auto mne = Garand::disassemble(asm_input[n]);
-    //         if (ImGui::Selectable(fmt::format("##{0}", mne).c_str(),
-    //                               is_selected)) {
-    //             asm_input_idx = n;
-    //         }
-    //         ImGui::SameLine();
-    //         if (is_next_execution) {
-    //             ImGui::TextColored(ImVec4(0.533f, 0.929f, 1.0f, 1.0f), "%s",
-    //                                mne.c_str());
-    //         } else {
-    //             ImGui::Text("%s", mne.c_str());
-    //         }
-    //         // Set the initial focus when opening the combo (scrolling +
-    //         // keyboard navigation focus)
-    //         if (is_selected)
-    //             ImGui::SetItemDefaultFocus();
-    //     }
-    //     ImGui::EndListBox();
-    // }
-    // static uint32_t raw = 0;
-    // ImGui::Text("New instruction");
-    // ImGui::InputScalar("INS", ImGuiDataType_U32, &raw, &value_step,
-    // &value_step,
-    //                    "%lX");
-    // if (ImGui::Button("Add")) {
-    //     auto const inst = Garand::Instruction::Encode(raw);
-    //     asm_input.push_back(inst);
-    // }
 
     cacheMemWindow(memory);
     ImGui::Begin("Memory View");
@@ -310,10 +311,17 @@ void pipelineDemoWindow() {
     ImGui::End();
     static auto is_skipping = false;
     static auto skip_count = 1;
-    ImGui::Checkbox("Turn on Skipping", &is_skipping);
+    ImGui::Checkbox("Skipping", &is_skipping);
     if (is_skipping) {
         ImGui::SameLine();
         ImGui::InputInt("count", &skip_count);
+    }
+    ImGui::Checkbox("Pipeline", &cpu.pipeline);
+    ImGui::SameLine();
+    if (ImGui::Checkbox("Cache", &memory.cacheOn)) {
+        if (!memory.cacheOn) {
+            memory.invalidate();
+        }
     }
     ImGui::Text("PC: 0x%llX", regs.ProgramCounter);
     if (regs.ProgramCounter + 4 <= memory.get_size()) {
@@ -326,33 +334,6 @@ void pipelineDemoWindow() {
         ImGui::Text("(End of Program)");
     }
     ImGui::Text("Clock: %llu cycle(s)", cpu.ReadClock());
-
-    constexpr auto PipeView = [](char const *id, auto const src) {
-        if (ImGui::TreeNodeEx(id, ImGuiTreeNodeFlags_DefaultOpen)) {
-            if (src) {
-                ImGui::Text("I: %s",
-                            Garand::disassemble(src->Instruction).c_str());
-                ImGui::Text("C: %llu", src->CycleCounter);
-                ImGui::Text("M: %s",
-                            fmt::format("{}", src->CycleNeeded).c_str());
-                ImGui::Text("P: %d", src->Processed);
-                auto &dec = src->decodedInstruction.parameter;
-                auto imm =
-                    dec.Immediate
-                        ? fmt::format("{}", (uint64_t)*dec.Immediate).c_str()
-                        : std::string_view{"None"}.data();
-                ImGui::Text("D: %s | %s",
-                            fmt::format("{}", dec.Registers).c_str(), imm);
-            } else {
-                ImGui::Text("(Empty)");
-                ImGui::Text("(Empty)");
-                ImGui::Text("(Empty)");
-                ImGui::Text("(Empty)");
-                ImGui::Text("(Empty)");
-            }
-            ImGui::TreePop();
-        }
-    };
 
     PipeView("Fetch", cpu.View()[0]);
     PipeView("Decode", cpu.View()[1]);
@@ -378,7 +359,6 @@ void pipelineDemoWindow() {
         is_running = !is_running;
     }
     static bool is_bp_hit = false;
-    static 
     auto execpc = cpu.ReadExecPC();
     is_bp_hit = (!is_bp_hit) && breakpoints.count(execpc);
     if (is_bp_hit) {
@@ -398,18 +378,10 @@ void pipelineDemoWindow() {
     }
     ImGui::SameLine();
     if (ImGui::Button("Step")) {
-        // if (next_execution < asm_input.size()) {
-        //     auto ins = asm_input[next_execution];
-        //     cpu.Queue(ins);
-        //     ++next_execution;
-        // }
         cpu.Step();
     }
     if (ImGui::Button("Reset Register")) {
         cpu.ResetRegs();
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Reset Cursor")) {
     }
     ImGui::SameLine();
     if (ImGui::Button("Reset Scratchpad")) {
@@ -459,12 +431,142 @@ void disassemblerDemoWindow() {
     ImGui::End();
 }
 
+void simulatorWindow() {
+    ImGui::Begin("Simulator");
+    static Garand::Processor cpu;
+    auto &memory = cpu.ReadMem();
+    graphic_buffer = &memory;
+    static bool load_success = true;
+    static char path[0x1000];
+    constexpr auto value_step = 0;
+
+    static Garand::AddressSize load_offset = 0;
+    ImGui::InputScalar("Load Offset (0x)", ImGuiDataType_U32, &load_offset,
+                       &value_step, &value_step, "%lX");
+    ImGui::InputTextWithHint("Executable", "path goes here", path,
+                             IM_ARRAYSIZE(path));
+    ImGui::SameLine();
+    if (ImGui::Button("Load")) {
+        FILE *fd = fopen(path, "rb");
+        load_success = !ferror(fd);
+        if (load_success) {
+            auto src = memory.get_raw() + load_offset;
+            auto read_size = memory.get_size() - load_offset;
+            fread(src, 1, read_size, fd);
+            memory.invalidate();
+            fclose(fd);
+        }
+    }
+    if (!load_success) {
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(1.f, 160.f / 255, 122.f / 255, 1.f),
+                           "(Failed)");
+    }
+
+    cacheMemWindow(memory);
+    ImGui::Begin("Memory View");
+    static ImGui::MemoryEditor mem_edit;
+    mem_edit.DrawContents(memory.get_raw(), memory.get_size());
+    ImGui::End();
+
+    auto &regs = cpu.Regs();
+    ImGui::Begin("Register Table");
+    drawRegTable("sim_reg_table", regs);
+    ImGui::End();
+    static auto is_skipping = false;
+    static auto skip_count = 1;
+    ImGui::Begin("Features");
+    ImGui::Checkbox("Turn on Skipping", &is_skipping);
+    if (is_skipping) {
+        ImGui::SameLine();
+        ImGui::PushItemWidth(125.f);
+        ImGui::InputInt("count", &skip_count);
+        ImGui::PopItemWidth();
+    }
+    ImGui::Checkbox("Pipeline", &cpu.pipeline);
+    ImGui::SameLine();
+    if (ImGui::Checkbox("Cache", &memory.cacheOn)) {
+        if (!memory.cacheOn) {
+            // Invalidate all cache, else the data is thought to be on cache
+            memory.invalidate();
+        }
+    }
+    ImGui::End();
+    ImGui::Text("PC: 0x%llX", regs.ProgramCounter);
+    if (regs.ProgramCounter + 4 <= memory.get_size()) {
+        auto &raw_load = *reinterpret_cast<uint32_t *>(memory.get_raw() +
+                                                       regs.ProgramCounter);
+        ImGui::Text(
+            "Speculating next: %s",
+            Garand::disassemble(Garand::Instruction::Encode(raw_load)).c_str());
+    } else {
+        ImGui::Text("(End of Program)");
+    }
+    ImGui::Text("Clock: %llu cycle(s)", cpu.ReadClock());
+
+    ImGui::Begin("Pipeline view");
+    PipeView("Fetch", cpu.View()[0]);
+    PipeView("Decode", cpu.View()[1]);
+    PipeView("Execute", cpu.View()[2]);
+    PipeView("Write-back", cpu.View()[3]);
+    ImGui::End();
+
+    static bool is_running = false;
+    static std::set<Garand::AddressSize> breakpoints;
+    static Garand::AddressSize breakpoint_buffer;
+    auto bp_list_s = fmt::format("{}", breakpoints);
+    ImGui::Text("%s", bp_list_s.c_str());
+    if (ImGui::Button("Set Breakpoint")) {
+        breakpoints.insert(breakpoint_buffer);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Remove Breakpoint")) {
+        breakpoints.erase(breakpoint_buffer);
+    }
+    ImGui::InputScalar("Breakpoint", ImGuiDataType_U32, &breakpoint_buffer,
+                       &value_step, &value_step, "%lX");
+    ImGui::Text("IsRunning: %d", is_running);
+    if (ImGui::Button("Run")) {
+        is_running = !is_running;
+    }
+    static bool is_bp_hit = false;
+    is_bp_hit = (!is_bp_hit) && breakpoints.count(cpu.ReadExecPC());
+    if (is_bp_hit) {
+        is_running = false;
+    }
+    if (is_running) {
+        cpu.Step();
+    }
+    for (auto i = 0; is_running && is_skipping && i < skip_count; ++i) {
+        is_bp_hit = (!is_bp_hit) && breakpoints.count(cpu.ReadExecPC());
+        if (is_bp_hit) {
+            is_running = false;
+        }
+        if (is_running) {
+            cpu.Step();
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Step")) {
+        cpu.Step();
+    }
+    if (ImGui::Button("Reset Register")) {
+        cpu.ResetRegs();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Reset Processor")) {
+        cpu = Garand::Processor();
+    }
+    ImGui::End();
+}
+
 void debuggui() {
     static bool show_demo_window = false;
     static bool show_memory_demo_window = false;
     static bool show_instruction_demo_window = false;
     static bool show_pipeline_demo_window = false;
     static bool show_disasm_demo_window = false;
+    static bool show_simulator_window = false;
     if (show_demo_window) {
         ImGui::ShowDemoWindow(&show_demo_window);
     }
@@ -480,6 +582,9 @@ void debuggui() {
     if (show_disasm_demo_window) {
         disassemblerDemoWindow();
     }
+    if (show_simulator_window) {
+        simulatorWindow();
+    }
     // Edit bools storing our window open/close state
     ImGui::Begin("Control UI");
     ImGui::Checkbox("Demo Window", &show_demo_window);
@@ -487,6 +592,7 @@ void debuggui() {
     ImGui::Checkbox("Instruction Demo", &show_instruction_demo_window);
     ImGui::Checkbox("Pipeline Demo", &show_pipeline_demo_window);
     ImGui::Checkbox("Disassembler Demo", &show_disasm_demo_window);
+    ImGui::Checkbox("Simulator", &show_simulator_window);
     ImGui::End();
 }
 
@@ -510,6 +616,9 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
         ImGuiIO &io = ImGui::GetIO();
         (void)io;
         ImGui::StyleColorsDark();
+        for (int k = 0; k < SDL_GetNumVideoDrivers(); ++k) {
+            fmt::print("Video driver found: {}\n", SDL_GetVideoDriver(k));
+        }
         ImGui_ImplSDL2_InitForSDLRenderer(window.Get(), renderer.Get());
         ImGui_ImplSDLRenderer_Init(renderer.Get());
         // Main loop
@@ -545,13 +654,20 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
 
             // Clear screen
             renderer.Clear();
+            if (graphic_buffer) {
+                Texture sprite(renderer, SDL_PIXELFORMAT_RGB888,
+                               SDL_TEXTUREACCESS_STATIC, GPU_WIDTH, GPU_HEIGHT);
+                sprite.Update(NullOpt, graphic_buffer->get_raw() + 0x1000,
+                              GPU_WIDTH * 4);
+                renderer.Copy(sprite, NullOpt);
+            }
 
             // Show rendered frame
             ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
             renderer.Present();
 
             // Frame limiter
-            // SDL_Delay(1);
+            SDL_Delay(1);
         }
 
         // Here all resources are automatically released and library
