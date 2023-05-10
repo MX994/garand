@@ -1,9 +1,3 @@
-#include "Disassemble.hpp"
-#include "Instruction.hpp"
-#include "Instructions.hpp"
-#include "Memory.hpp"
-#include "Processor.hpp"
-#include "Registers.hpp"
 #include <SDL2pp/SDL2pp.hh>
 #include <algorithm>
 #include <exception>
@@ -19,6 +13,13 @@
 #include <string_view>
 #include <variant>
 #include <vector>
+
+#include "Disassemble.hpp"
+#include "Instruction.hpp"
+#include "Instructions.hpp"
+#include "Memory.hpp"
+#include "Processor.hpp"
+#include "Registers.hpp"
 
 namespace ImGui {
 #include <imgui_memory_editor.h>
@@ -221,8 +222,7 @@ void instructionDemoWindow() {
         auto &ins = asmline;
         auto decode = Garand::Instruction::Decode(ins);
         // Based on Serg change, regs must be uint64_t*
-        auto wb =
-            Garand::Instruction::Execute(decode, ins, mem, (uint64_t *)&regs);
+        auto wb = Garand::Instruction::Execute(decode, ins, mem, &regs);
         Garand::Instruction::WriteBack(wb, mem);
     }
     ImGui::SameLine();
@@ -237,7 +237,7 @@ void pipelineDemoWindow() {
     static Garand::Processor cpu;
     auto &memory = cpu.ReadMem();
     static bool load_success = true;
-    static char path[0x100];
+    static char path[0x1000];
     constexpr auto value_step = 0;
 
     static Garand::AddressSize load_offset = 0;
@@ -247,11 +247,17 @@ void pipelineDemoWindow() {
                              IM_ARRAYSIZE(path));
     ImGui::SameLine();
     if (ImGui::Button("Load")) {
-        auto fd = std::fstream(path, std::fstream::in);
-        load_success = fd.is_open();
-        if (fd.is_open()) {
-            fd.read(reinterpret_cast<char *>(memory.get_raw()),
-                    memory.get_size());
+        FILE *fd = nullptr;
+        (void)fopen_s(&fd, path, "rb");
+        load_success = !ferror(fd);
+        if (load_success) {
+            auto src = memory.get_raw() + load_offset;
+            auto read_size = memory.get_size() - load_offset;
+            fread(src, 1, read_size, fd);
+            // fmt::print("{:0x}\n", (uint64_t)&src);
+            memory.invalidate();
+            // fd.close();
+            fclose(fd);
         }
     }
     if (!load_success) {
@@ -302,6 +308,13 @@ void pipelineDemoWindow() {
     ImGui::Begin("Register Table");
     drawRegTable("pipdemo_reg_table", regs);
     ImGui::End();
+    static auto is_skipping = false;
+    static auto skip_count = 1;
+    ImGui::Checkbox("Turn on Skipping", &is_skipping);
+    if (is_skipping) {
+        ImGui::SameLine();
+        ImGui::InputInt("count", &skip_count);
+    }
     ImGui::Text("PC: 0x%llX", regs.ProgramCounter);
     if (regs.ProgramCounter + 4 <= memory.get_size()) {
         auto &raw_load = *reinterpret_cast<uint32_t *>(memory.get_raw() +
@@ -313,38 +326,38 @@ void pipelineDemoWindow() {
         ImGui::Text("(End of Program)");
     }
     ImGui::Text("Clock: %llu cycle(s)", cpu.ReadClock());
-    ImGui::Text("Fetch:");
-    ImGui::SameLine();
-    if (cpu.View()[0]) {
-        ImGui::Text("%s",
-                    Garand::disassemble(cpu.View()[0]->Instruction).c_str());
-    } else {
-        ImGui::Text("(Empty)");
-    }
-    ImGui::Text("Decode:");
-    ImGui::SameLine();
-    if (cpu.View()[1]) {
-        ImGui::Text("%s",
-                    Garand::disassemble(cpu.View()[1]->Instruction).c_str());
-    } else {
-        ImGui::Text("(Empty)");
-    }
-    ImGui::Text("Execute:");
-    ImGui::SameLine();
-    if (cpu.View()[2]) {
-        ImGui::Text("%s",
-                    Garand::disassemble(cpu.View()[2]->Instruction).c_str());
-    } else {
-        ImGui::Text("(Empty)");
-    }
-    ImGui::Text("Writeback:");
-    ImGui::SameLine();
-    if (cpu.View()[3]) {
-        ImGui::Text("%s",
-                    Garand::disassemble(cpu.View()[3]->Instruction).c_str());
-    } else {
-        ImGui::Text("(Empty)");
-    }
+
+    constexpr auto PipeView = [](char const *id, auto const src) {
+        if (ImGui::TreeNodeEx(id, ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (src) {
+                ImGui::Text("I: %s",
+                            Garand::disassemble(src->Instruction).c_str());
+                ImGui::Text("C: %llu", src->CycleCounter);
+                ImGui::Text("M: %s",
+                            fmt::format("{}", src->CycleNeeded).c_str());
+                ImGui::Text("P: %d", src->Processed);
+                auto &dec = src->decodedInstruction.parameter;
+                auto imm =
+                    dec.Immediate
+                        ? fmt::format("{}", (uint64_t)*dec.Immediate).c_str()
+                        : std::string_view{"None"}.data();
+                ImGui::Text("D: %s | %s",
+                            fmt::format("{}", dec.Registers).c_str(), imm);
+            } else {
+                ImGui::Text("(Empty)");
+                ImGui::Text("(Empty)");
+                ImGui::Text("(Empty)");
+                ImGui::Text("(Empty)");
+                ImGui::Text("(Empty)");
+            }
+            ImGui::TreePop();
+        }
+    };
+
+    PipeView("Fetch", cpu.View()[0]);
+    PipeView("Decode", cpu.View()[1]);
+    PipeView("Execute", cpu.View()[2]);
+    PipeView("Write-back", cpu.View()[3]);
 
     static bool is_running = false;
     static std::set<Garand::AddressSize> breakpoints;
@@ -365,15 +378,23 @@ void pipelineDemoWindow() {
         is_running = !is_running;
     }
     static bool is_bp_hit = false;
-    auto exec_pc = cpu.ReadExecPC();
-    if (!is_bp_hit && exec_pc != 0 && breakpoints.count(exec_pc)) {
+    static 
+    auto execpc = cpu.ReadExecPC();
+    is_bp_hit = (!is_bp_hit) && breakpoints.count(execpc);
+    if (is_bp_hit) {
         is_running = false;
-        is_bp_hit = true;
-    } else {
-        is_bp_hit = false;
     }
     if (is_running) {
         cpu.Step();
+    }
+    for (auto i = 0; is_running && is_skipping && i < skip_count; ++i) {
+        is_bp_hit = (!is_bp_hit) && breakpoints.count(cpu.ReadExecPC());
+        if (is_bp_hit) {
+            is_running = false;
+        }
+        if (is_running) {
+            cpu.Step();
+        }
     }
     ImGui::SameLine();
     if (ImGui::Button("Step")) {
@@ -402,7 +423,7 @@ void disassemblerDemoWindow() {
     static std::vector<uint8_t> mem(0x10000);
     static ImGui::MemoryEditor mem_edit;
     static std::string buffer;
-    static char path[0x100];
+    static char path[0x1000];
     static bool load_success = true;
     if (ImGui::Button("Reset")) {
         mem.clear();

@@ -4,6 +4,8 @@
 #include <cstdint>
 
 namespace Garand {
+    using RegisterSize = uint64_t;
+
     /*
         Registers layout:
         - R0 -> R15: General Purpose Registers. [0, 15]
@@ -31,6 +33,6 @@ namespace Garand {
         uint64_t ProgramCounter;
     };
 
-    uint64_t* load_reg(uint64_t* registers, uint8_t reg_index);
+    RegisterSize* load_reg(Registers* registers, uint8_t reg_index);
 } // namespace Garand
 #endif
