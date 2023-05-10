@@ -72,6 +72,12 @@ void cacheMemWindow(Garand::Memory &mem) {
     ImGui::Begin("Cache view");
     static int block_id = 0;
     ImGui::InputInt("Block", &block_id);
+    if (block_id >= Garand::CACHE_BLOCK_COUNT) {
+        block_id = Garand::CACHE_BLOCK_COUNT - 1;
+    }
+    if (block_id < 0) {
+        block_id = 0;
+    }
 
     static ImGui::MemoryEditor mem_edit;
     auto *block = &mem.Blocks[block_id];
@@ -305,7 +311,7 @@ void pipelineDemoWindow() {
     ImGui::End();
     static auto is_skipping = false;
     static auto skip_count = 1;
-    ImGui::Checkbox("Turn on Skipping", &is_skipping);
+    ImGui::Checkbox("Skipping", &is_skipping);
     if (is_skipping) {
         ImGui::SameLine();
         ImGui::InputInt("count", &skip_count);
