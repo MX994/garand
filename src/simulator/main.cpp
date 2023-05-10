@@ -555,9 +555,17 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
 
             // Clear screen
             renderer.Clear();
-	        if (graphic_buffer) {
+
+	        // if (graphic_buffer) {
+            //     Texture sprite(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STATIC, GPU_WIDTH, GPU_HEIGHT);
+            //     sprite.Update(NullOpt, graphic_buffer->get_raw() + 0x1000, GPU_WIDTH * 4);
+            //     renderer.Copy(sprite, NullOpt);
+            // }
+
+            if (graphic_buffer) {
                 Texture sprite(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STATIC, GPU_WIDTH, GPU_HEIGHT);
-                sprite.Update(NullOpt, graphic_buffer->get_raw() + 0x1000, GPU_WIDTH * 4);
+                uint8_t *GFXBuffer = graphic_buffer->get_raw();
+                sprite.Update(NullOpt, GFXBuffer + *(uint32_t *)(GFXBuffer + 0x1000), GPU_WIDTH * 4);
                 renderer.Copy(sprite, NullOpt);
             }
 
