@@ -661,10 +661,12 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
                 Texture sprite(renderer, SDL_PIXELFORMAT_RGB888,
                                SDL_TEXTUREACCESS_STATIC, GPU_WIDTH, GPU_HEIGHT);
                 uint8_t *GFXBuffer = graphic_buffer->get_raw();
-                sprite.Update(NullOpt,
-                              GFXBuffer + *(uint32_t *)(GFXBuffer + 0x1000),
-                              GPU_WIDTH * 4);
-                renderer.Copy(sprite, NullOpt);
+                auto *offset = reinterpret_cast<uint32_t *>(GFXBuffer + 0x1000);
+                if (*offset + GPU_WIDTH * 4 * GPU_HEIGHT <
+                    graphic_buffer->get_size()) {
+                    sprite.Update(NullOpt, GFXBuffer + *offset, GPU_WIDTH * 4);
+                    renderer.Copy(sprite, NullOpt);
+                }
             }
 
             // Show rendered frame
