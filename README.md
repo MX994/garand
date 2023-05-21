@@ -22,6 +22,7 @@ cd garand
 Afterwards, run the below commands depending on the system.
 
 #### Windows
+
 ```
 vcpkg install fmt sdl2 sdl2-image sdl2-mixer imgui[sdl2-binding,sdl2-renderer-binding] sdl2pp
 ```
