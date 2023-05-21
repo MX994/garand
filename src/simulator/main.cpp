@@ -275,9 +275,6 @@ void pipelineDemoWindow() {
     static bool load_success = true;
     static char path[0x1000];
     constexpr auto value_step = 0;
-    if (graphic_buffer == nullptr) {
-        graphic_buffer = &memory;
-    }
 
     static Garand::AddressSize load_offset = 0;
     ImGui::InputScalar("Load Offset (0x)", ImGuiDataType_U32, &load_offset,
