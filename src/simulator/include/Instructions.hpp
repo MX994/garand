@@ -98,8 +98,6 @@ namespace Garand {
             static InstructionWriteBack RotationalShiftRight(GarandInstruction instr, Memory &mem, Registers *regs);
             static InstructionWriteBack RotationalShiftRightImmediate(GarandInstruction instr, Memory &mem, Registers *regs);
             static InstructionWriteBack NOT(GarandInstruction instr, Memory &mem, Registers *regs);
-            static InstructionWriteBack Call(GarandInstruction instr, Memory &mem, Registers* regs);
-            static InstructionWriteBack Return(GarandInstruction instr, Memory &mem, Registers* regs);
     };
 
     enum DecodedMnemonic {
@@ -173,8 +171,6 @@ namespace Garand {
         RSR,
         RSRI,
         NOT,
-        CALL,
-        RETURN,
         UNKNOWN,
     };
 
