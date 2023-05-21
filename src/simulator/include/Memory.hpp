@@ -54,16 +54,23 @@ class Memory {
     bool IsBlockInCache(CacheAddress Addr);
     template<typename T>
     T *load(AddressSize address) {
+        if (!cacheOn) {
+          return reinterpret_cast<T*>(memory_region.data() + address);
+        }
         CacheAddress Addr = toCacheAddress(address);
         CacheBlock *Block = CacheCheckHitMiss(Addr);
         return reinterpret_cast<T *>(Block->Data + Addr.Offset);
     }
     template<typename T>
     void store(AddressSize address, T value) {
+        if (!cacheOn) {
+          *reinterpret_cast<T*>(memory_region.data() + address) = value;
+          return;
+        }
         CacheAddress Addr = toCacheAddress(address);
         CacheBlock *Block = CacheCheckHitMiss(Addr);
         *(T *)(&Block->Data[Addr.Offset]) = value;
-        *(T *)(&this->memory_region[address]) = value;
+        *reinterpret_cast<T*>(memory_region.data() + address) = value;
     }
     size_t get_size();
     size_t get_counter();
@@ -71,6 +78,11 @@ class Memory {
     uint8_t *get_raw();
     void invalidate();
     void invalidate_block(AddressSize);
+
+    // By default, Memory uses cache.
+    // Set this to false to turn it off,
+    // ..which change IsCacheHit and CacheCheckHitMiss
+    bool cacheOn = true;
 };
 
 }; // namespace Garand
