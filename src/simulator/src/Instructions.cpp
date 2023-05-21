@@ -259,7 +259,7 @@ Garand::InstructionSet::BRUHCC_LS(Garand::GarandInstruction instr,
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
-    if (!(reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero)) {
+    if (!(reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero == 0)) {
         wb.reg = &reg_struct->ProgramCounter;
         wb.value = reg_dest;
     } else {
@@ -548,7 +548,7 @@ Garand::InstructionSet::BCC_LS(Garand::GarandInstruction instr,
 
     Garand::Registers *reg_struct = (Garand::Registers *)regs;
 
-    if (!(reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero)) {
+    if (!(reg_struct->Condition.Carry == 1 && reg_struct->Condition.Zero == 0)) {
         wb.reg = &reg_struct->ProgramCounter;
         wb.value = (int64_t)reg_struct->ProgramCounter + offset;
     } else {
@@ -810,17 +810,16 @@ std::tuple<uint64_t, Garand::ConditionFlag> AddWithCarry(RegisterSize x, Registe
     auto constexpr get_msb = [](auto val) -> uint8_t {
         return (val >> (sizeof(val) * 8 - 1)) & 1;
     };
-    auto unsigned_sum = x + y + static_cast<uint64_t>(carry);
+    auto _carry = static_cast<RegisterSize>(carry);
+    auto unsigned_sum = x + y + _carry;
     auto tmp = (get_msb(x) << 2) | (get_msb(y) << 1) | get_msb(unsigned_sum);
-    constexpr auto top = ~(1ULL << (sizeof(uint64_t) * 8 - 1));
-    auto x0 = x < top + 1;
-    auto y0 = y < top + 1;
-    auto x1 = x < top;
-    auto y1 = y < top;
-    auto flag = Garand::ConditionFlag {
+    constexpr auto top = ~(0ULL);
+    auto flag = Garand::ConditionFlag{
         .Zero = (unsigned_sum == 0),
         .Negative = get_msb(unsigned_sum),
-        .Carry = static_cast<uint8_t>((x1 && y1) || (x0 && y1) || (x1 && y0)),
+        .Carry = (x == top && y == top) ||
+                 ((x < top) && (x + _carry > top - y)) ||
+                 ((y < top) && (y + _carry > top - x)),
         .Overflow = (tmp == 0b1 || tmp == 0b110),
     };
     return std::make_tuple(unsigned_sum, flag);
