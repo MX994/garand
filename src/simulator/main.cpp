@@ -620,7 +620,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
         // Uncomment this to increase UI framerate
         // io.DeltaTime = 1.f / 2000.f;
         ImGui::StyleColorsDark();
-        for (int k = 0; k < SDL_GetNumVideoDrivers(); ++k) 
+        for (int k = 0; k < SDL_GetNumVideoDrivers(); ++k) {
             fmt::print("Video driver found: {}\n", SDL_GetVideoDriver(k));
         }
         ImGui_ImplSDL2_InitForSDLRenderer(window.Get(), renderer.Get());
@@ -658,24 +658,15 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
 
             // Clear screen
             renderer.Clear();
+
+            // Copy texture
             if (graphic_buffer) {
                 Texture sprite(renderer, SDL_PIXELFORMAT_RGB888,
                                SDL_TEXTUREACCESS_STATIC, GPU_WIDTH, GPU_HEIGHT);
-                sprite.Update(NullOpt, graphic_buffer->get_raw() + 0x1000,
-                              GPU_WIDTH * 4);
-                renderer.Copy(sprite, NullOpt);
-            }
-
-	        // if (graphic_buffer) {
-            //     Texture sprite(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STATIC, GPU_WIDTH, GPU_HEIGHT);
-            //     sprite.Update(NullOpt, graphic_buffer->get_raw() + 0x1000, GPU_WIDTH * 4);
-            //     renderer.Copy(sprite, NullOpt);
-            // }
-
-            if (graphic_buffer) {
-                Texture sprite(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STATIC, GPU_WIDTH, GPU_HEIGHT);
                 uint8_t *GFXBuffer = graphic_buffer->get_raw();
-                sprite.Update(NullOpt, GFXBuffer + *(uint32_t *)(GFXBuffer + 0x1000), GPU_WIDTH * 4);
+                sprite.Update(NullOpt,
+                              GFXBuffer + *(uint32_t *)(GFXBuffer + 0x1000),
+                              GPU_WIDTH * 4);
                 renderer.Copy(sprite, NullOpt);
             }
 

@@ -98,7 +98,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
     }
 
     // Here all resources are automatically released and library
-    deinitialized ImGui_ImplSDLRenderer_Shutdown();
+    ImGui_ImplSDLRenderer_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
     return 0;
